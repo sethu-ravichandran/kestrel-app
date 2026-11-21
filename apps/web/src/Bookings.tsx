@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
 import { TerritoryCards, WeekGrid } from './Team'
 import Inspector from './Inspector'
+import { Big, Headline } from '@/components/Headline'
 
 const TOPIC: Record<string, string> = { general: 'Intro & pricing', technical: 'Technical deep-dive', billing: 'Billing' }
 
@@ -39,9 +40,14 @@ export default function Bookings({ st }: { st: State }) {
   }
 
   return <div className="space-y-6">
-    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{stats.map(([k, v]) =>
-      <div key={k} className="rounded-2xl border border-[hsl(var(--line))] bg-white p-5 shadow-[0_1px_2px_rgba(12,16,36,.04),0_8px_24px_-12px_rgba(12,16,36,.08)] transition-transform duration-base hover:-translate-y-0.5"><p className="text-[13px] text-muted-foreground">{k}</p>
-        {rows ? <p className="mt-2 text-[30px] font-semibold leading-none tabular-nums tracking-[-0.04em] animate-fade-up">{v}</p> : <Skeleton className="mt-2 h-7 w-16" />}</div>)}</div>
+    {rows && (() => { const own = live.filter(b => b.why === 'owner').length, rul = live.length - own
+      return <Headline eyebrow="This week" title={<><Big>{own} of {live.length}</Big> meetings went straight to the account owner.</>} sub={<>The other {rul} were matched by territory, skill and language. None needed a manual reassign.</>}>
+        <div className="space-y-3">
+          <div className="flex h-10 overflow-hidden rounded-xl ring-1 ring-white/10">
+            <div className="flex items-center bg-primary px-3 text-[13px] font-semibold transition-[width] duration-slow" style={{ width: `${(own / Math.max(1, live.length)) * 100}%` }}>Owner · {own}</div>
+            <div className="flex flex-1 items-center bg-[#33c3a5] px-3 text-[13px] font-semibold text-[#06302a]">Rules · {rul}</div></div>
+          <div className="grid grid-cols-3 gap-2 text-center">{[[String(live.length), 'upcoming'], ['0', 'manual reassigns'], [String((rows || []).filter(b => b.status === 'cancelled').length), 'cancelled']].map(([v, l]) => <div key={l} className="rounded-xl bg-white/[.06] py-2"><p className="text-lg font-semibold tabular-nums">{v}</p><p className="text-[11px] text-white/55">{l}</p></div>)}</div>
+        </div></Headline> })()}
 
     {rows ? <TerritoryCards st={st} rows={rows} /> : <Skeleton className="h-[116px]" />}
 

@@ -9,6 +9,7 @@ import { NativeSelect, Skeleton } from '@/components/ui/input'
 import { Alert } from '@/components/ui/alert'
 import { useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
+import { Big, Headline } from '@/components/Headline'
 
 function Count({ v }: { v: number }) {
   const [n, setN] = useState(v); const from = useRef(v)
@@ -47,6 +48,19 @@ export default function Admin({ st, reload, show }: { st: State; reload: () => P
   const active = st.reps.filter(r => r.active)
 
   return <div className="space-y-4">
+    {show === 'routing' && sim && <Headline eyebrow="Routing quality" title={<>Right rep, first time: <Big>{sim.good}/{sim.total}</Big>, up from {sim.oldGood}/{sim.total}.</>} sub="Last week's bookings replayed through these rules. Change a rule below and watch this number move.">
+      <div className="space-y-3">{([['Round robin (before)', sim.oldGood, 'bg-white/30'], ['Smart routing (now)', sim.good, 'bg-primary']] as const).map(([l, v, c]) => <div key={l}>
+        <div className="mb-1 flex justify-between text-[12px] text-white/70"><span>{l}</span><span className="tabular-nums">{v}/{sim.total}</span></div>
+        <div className="flex gap-1">{Array.from({ length: sim.total }, (_, i) => <div key={i} className={cn('h-7 flex-1 rounded-md transition-colors duration-slow', i < v ? c : 'bg-white/[.07]')} style={{ transitionDelay: i * 40 + 'ms' }} />)}</div></div>)}</div>
+    </Headline>}
+    {show === 'team' && (() => { const live = st.reps.filter(r => r.active), off = st.reps.filter(r => !r.active), away = live.filter(r => r.away)
+      const orphan = 0
+      return <Headline eyebrow="Team health" title={<><Big>{live.length - away.length} of {st.reps.length}</Big> reps are taking meetings. <Big>{orphan}</Big> accounts without an owner.</>} sub={off.length ? `${off.map(r => r.name).join(', ')} left via Okta. Their accounts and meetings were handed over automatically.` : 'Okta keeps this list in sync. When someone leaves, their accounts and meetings move to a teammate automatically.'}>
+        <div className="grid grid-cols-2 gap-2">{['NA-West', 'NA-East', 'EMEA', 'APAC'].map(t => { const reps = st.reps.filter(r => r.terr === t)
+          return <div key={t} className="rounded-xl bg-white/[.06] p-3"><p className="text-[12px] text-white/60">{t}</p>
+            <div className="mt-2 flex gap-1.5">{reps.map(r => <span key={r.id} title={`${r.name}: ${!r.active ? 'deprovisioned' : r.away ? 'on leave' : 'available'}`} className={cn('size-3 rounded-full transition-colors duration-slow', !r.active ? 'bg-red-400/70' : r.away ? 'bg-amber-400' : 'bg-emerald-400')} />)}</div></div> })}
+          <p className="col-span-2 flex gap-3 text-[11px] text-white/50"><span className="flex items-center gap-1"><span className="size-2 rounded-full bg-emerald-400" />available</span><span className="flex items-center gap-1"><span className="size-2 rounded-full bg-amber-400" />on leave</span><span className="flex items-center gap-1"><span className="size-2 rounded-full bg-red-400/70" />left</span></p></div>
+      </Headline> })()}
     {show === 'routing' && <>
     {/* buffer nudge */}
     <Card><CardContent className="flex flex-wrap items-center gap-4 p-5">
