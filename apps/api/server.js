@@ -106,6 +106,30 @@ function deprovision(r) {
   return { rep: r.name, peer: peer.name, accounts: owns, meetings: moved.length };
 }
 
+
+// ---------- insights: last 8 weeks (deterministic synthetic history + live bookings) ----------
+function insights() {
+  let seedN = 7; const rnd = () => ((seedN = (seedN * 9301 + 49297) % 233280) / 233280);
+  const heat = Array.from({ length: 5 }, () => Array(10).fill(0)); // Mon-Fri x 08..17 rep-local
+  const weeks = [];
+  const reps = DB.reps.map((r) => ({ id: r.id, name: r.name, terr: r.terr, active: r.active, trend: [] }));
+  for (let w = 7; w >= 0; w--) {
+    const total = 38 + Math.round(rnd() * 14) + (7 - w) * 2;
+    const after = w <= 3; // smart routing switched on 4 weeks ago
+    const owner = Math.round(total * (after ? 0.34 : 0.0)), terr = Math.round(total * (after ? 0.33 : 0)), skill = Math.round(total * (after ? 0.21 : 0));
+    weeks.push({ label: DEMO_NOW.minus({ weeks: w }).startOf('week').toFormat('d LLL'), owner, terr, skill, rr: total - owner - terr - skill, right: Math.round(total * (after ? 0.95 + rnd() * 0.04 : 0.2 + rnd() * 0.1)), total });
+    reps.forEach((r) => r.trend.push(Math.round(4 + rnd() * 6 + (r.id === 'ana' && !after ? 5 : 0))));
+    for (let i = 0; i < total; i++) { const d = Math.floor(rnd() * 5), h = Math.min(9, Math.floor(Math.abs(rnd() + rnd() - 1) * 6 + (rnd() < 0.5 ? 1 : 5))); heat[d][h]++; }
+  }
+  DB.bookings.filter((b) => b.status === 'confirmed').forEach((b) => { const r = rep(b.repId); if (!r) return; const s = DateTime.fromISO(b.start).setZone(r.tz); if (s.weekday <= 5 && s.hour >= 8 && s.hour < 18) heat[s.weekday - 1][s.hour - 8]++; });
+  const last = weeks.slice(-4), prev = weeks.slice(0, 4);
+  const sum = (a, k) => a.reduce((x, y) => x + y[k], 0);
+  return {
+    weeks, heat, reps,
+    kpis: { bookings30: sum(last, 'total'), rightNow: Math.round(100 * sum(last, 'right') / sum(last, 'total')), rightBefore: Math.round(100 * sum(prev, 'right') / sum(prev, 'total')), reassignsSaved: sum(last, 'right') - Math.round(sum(last, 'total') * 0.25) },
+  };
+}
+
 const scimUser = (r) => ({ schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'], id: r.id, userName: r.email, displayName: r.name, active: r.active });
 
 // ---------- http ----------
@@ -162,6 +186,7 @@ async function handler(req, res) {
       log('ops@halden', DB.buffer ? 'Buffer turned on' : 'Buffer turned off', '10 min after every meeting · all reps');
       return send(res, 200, { buffer: DB.buffer });
     }
+    if (p === '/api/insights' && m === 'GET') return send(res, 200, insights());
     if (p === '/api/simulate' && m === 'GET') return send(res, 200, simulate());
     if (p === '/api/audit' && m === 'GET') return send(res, 200, store.listAudit());
     if (p === '/api/audit.csv' && m === 'GET') {

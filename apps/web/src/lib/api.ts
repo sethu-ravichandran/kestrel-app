@@ -15,6 +15,7 @@ export const api = {
   rules: (rules: Rule[]) => call<Rule[]>('/api/rules', 'PUT', { rules }),
   leave: (id: string, away: boolean) => call<Rep>('/api/reps/' + id, 'PATCH', { away }),
   buffer: (on: boolean) => call('/api/buffer', 'POST', { on }),
+  insights: () => call<Insights>('/api/insights'),
   simulate: () => call<{ rows: SimRow[]; oldGood: number; good: number; total: number }>('/api/simulate'),
   audit: () => call<Audit[]>('/api/audit'),
   reset: () => call('/api/reset', 'POST'),
@@ -22,3 +23,9 @@ export const api = {
     { schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'], Operations: [{ op: 'replace', value: { active: false } }] }, { Authorization: 'Bearer demo-okta-token' }),
 }
 export const city = (z: string) => z.split('/').pop()!.replace('_', ' ')
+export type Insights = {
+  weeks: { label: string; owner: number; terr: number; skill: number; rr: number; right: number; total: number }[]
+  heat: number[][]
+  reps: { id: string; name: string; terr: string; active: boolean; trend: number[] }[]
+  kpis: { bookings30: number; rightNow: number; rightBefore: number; reassignsSaved: number }
+}

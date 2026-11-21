@@ -8,6 +8,7 @@ import { Input, Skeleton } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
 import { TerritoryCards, WeekGrid } from './Team'
+import Inspector from './Inspector'
 
 const TOPIC: Record<string, string> = { general: 'Intro & pricing', technical: 'Technical deep-dive', billing: 'Billing' }
 
@@ -17,6 +18,7 @@ export default function Bookings({ st }: { st: State }) {
   const [tab, setTab] = useState<'confirmed' | 'cancelled'>('confirmed')
   const [q, setQ] = useState('')
   const [view, setView] = useState<'list' | 'week'>('list')
+  const [open, setOpen] = useState<string | null>(null)
   const [pending, setPending] = useState<string | null>(null)
   const load = async () => setRows(await api.bookings())
   useEffect(() => { load() }, [])
@@ -33,7 +35,7 @@ export default function Bookings({ st }: { st: State }) {
   ]
 
   async function cancel(b: Booking) {
-    setPending(b.id); await api.cancel(b.id); toast(`Cancelled ${b.id}. ${b.who} has been notified.`); await load(); setPending(null)
+    setPending(b.id); await api.cancel(b.id); setOpen(null); toast(`Cancelled ${b.id}. ${b.who} has been notified.`); await load(); setPending(null)
   }
 
   return <div className="space-y-6">
@@ -43,7 +45,8 @@ export default function Bookings({ st }: { st: State }) {
 
     {rows ? <TerritoryCards st={st} rows={rows} /> : <Skeleton className="h-[116px]" />}
 
-    <div className="overflow-hidden rounded-2xl border border-[#e6e9f2] bg-white shadow-[0_1px_2px_rgba(12,16,36,.04),0_8px_24px_-12px_rgba(12,16,36,.08)]">
+    <div className={cn('grid items-start gap-4', open && 'xl:grid-cols-[1fr_340px]')}>
+    <div className="min-w-0 overflow-hidden rounded-2xl border border-[#e6e9f2] bg-white shadow-[0_1px_2px_rgba(12,16,36,.04),0_8px_24px_-12px_rgba(12,16,36,.08)]">
       <div className="flex flex-wrap items-center gap-3 border-b px-4 py-3">
         <div className="flex rounded-full bg-[#eef1f8] p-1 text-[13px]">{(['confirmed', 'cancelled'] as const).map(t =>
           <button key={t} onClick={() => setTab(t)} className={cn('rounded-full px-3.5 py-1 font-medium capitalize transition-all duration-fast', tab === t ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
@@ -60,17 +63,19 @@ export default function Bookings({ st }: { st: State }) {
             {!rows ? Array.from({ length: 5 }).map((_, i) => <tr key={i}><td colSpan={6} className="px-4 py-3"><Skeleton className="h-8" /></td></tr>) :
               list.length === 0 ? <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">{q ? 'No bookings match your search.' : tab === 'confirmed' ? 'No upcoming meetings.' : 'No cancelled meetings.'}</td></tr> :
               list.map(b => { const r = rep(b.repId), d = DateTime.fromISO(b.start)
-                return <tr key={b.id} className="transition-colors hover:bg-gray-50/70 animate-fade-up">
+                return <tr key={b.id} onClick={() => setOpen(b.id)} tabIndex={0} onKeyDown={e => e.key === 'Enter' && setOpen(b.id)} aria-selected={open === b.id} className={cn('cursor-pointer transition-colors hover:bg-gray-50/70 animate-fade-up focus-visible:outline-none focus-visible:bg-primary/5', open === b.id && 'bg-primary/[.06] shadow-[inset_2px_0_0_hsl(var(--primary))]')}>
                   <td className="px-4 py-3"><p className="font-medium tabular-nums">{d.setZone(b.tz).toFormat('ccc d LLL · HH:mm')}</p><p className="text-xs tabular-nums text-muted-foreground">{city(b.tz)}{r ? ` · ${d.setZone(r.tz).toFormat('HH:mm')} ${city(r.tz)}` : ''}</p></td>
                   <td className="px-4 py-3">{b.who}</td>
                   <td className="px-4 py-3 text-muted-foreground">{TOPIC[b.topic] || b.topic}</td>
                   <td className="px-4 py-3"><div className="flex items-center gap-2"><span className="grid size-6 place-items-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">{r?.name.split(' ').map(x => x[0]).join('')}</span>{r?.name}{r && !r.active && <Badge variant="destructive">Deprovisioned</Badge>}</div></td>
                   <td className="px-4 py-3">{b.why === 'owner' ? <Badge variant="default">Account owner</Badge> : <Badge>Rules</Badge>}</td>
-                  <td className="px-4 py-3 text-right">{b.status === 'confirmed' && <Button variant="ghost" size="sm" disabled={pending === b.id} aria-busy={pending === b.id} onClick={() => cancel(b)} className="text-red-600 hover:bg-red-50 hover:text-red-700">{pending === b.id ? 'Cancelling…' : 'Cancel'}</Button>}</td>
+                  <td className="px-4 py-3 text-right">{b.status === 'confirmed' && <Button variant="ghost" size="sm" disabled={pending === b.id} aria-busy={pending === b.id} onClick={e => { e.stopPropagation(); cancel(b) }} className="text-red-600 hover:bg-red-50 hover:text-red-700">{pending === b.id ? 'Cancelling…' : 'Cancel'}</Button>}</td>
                 </tr> })}
           </tbody>
         </table>
       </div>}
+    </div>
+    {open && rows && (() => { const b = rows.find(x => x.id === open); return b ? <Inspector key={b.id} b={b} st={st} onClose={() => setOpen(null)} onCancel={cancel} /> : null })()}
     </div>
   </div>
 }
