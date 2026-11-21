@@ -18,7 +18,7 @@ export default function Bookings({ st }: { st: State }) {
   const [rows, setRows] = useState<Booking[] | null>(null)
   const [tab, setTab] = useState<'confirmed' | 'cancelled'>('confirmed')
   const [q, setQ] = useState('')
-  const [view, setView] = useState<'list' | 'week'>('list')
+  const [view, setView] = useState<'list' | 'week'>('week')
   const [open, setOpen] = useState<string | null>(null)
   const [pending, setPending] = useState<string | null>(null)
   const load = async () => setRows(await api.bookings())
@@ -57,12 +57,12 @@ export default function Bookings({ st }: { st: State }) {
         <div className="flex rounded-full bg-[hsl(var(--muted))] p-1 text-[13px]">{(['confirmed', 'cancelled'] as const).map(t =>
           <button key={t} onClick={() => setTab(t)} className={cn('rounded-full px-3.5 py-1 font-medium capitalize transition-all duration-fast', tab === t ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
             {t === 'confirmed' ? 'Upcoming' : 'Cancelled'} <span className="ml-1 tabular-nums text-muted-foreground">{(rows || []).filter(b => b.status === t).length}</span></button>)}</div>
-        <div className="flex rounded-full border border-[hsl(var(--line))] p-1 text-[13px]">{(['list', 'week'] as const).map(v => <button key={v} onClick={() => setView(v)} className={cn('rounded-full px-3.5 py-1 font-medium capitalize transition-all duration-fast', view === v ? 'bg-[hsl(var(--navy))] text-white dark:bg-primary' : 'text-muted-foreground hover:text-foreground')}>{v}</button>)}</div>
+        <div className="flex rounded-full border border-[hsl(var(--line))] p-1 text-[13px]">{(['week', 'list'] as const).map(v => <button key={v} onClick={() => setView(v)} className={cn('rounded-full px-3.5 py-1 font-medium capitalize transition-all duration-fast', view === v ? 'bg-[hsl(var(--navy))] text-white dark:bg-primary' : 'text-muted-foreground hover:text-foreground')}>{v}</button>)}</div>
         <div className="relative ml-auto w-full sm:w-64"><Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input aria-label="Search bookings" placeholder="Search invitee or rep" className="pl-8" value={q} onChange={e => setQ(e.target.value)} />
           {q && <button aria-label="Clear search" onClick={() => setQ('')} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"><X className="size-3.5" /></button>}</div>
       </div>
-      {view === 'week' ? <div className="p-4">{rows ? <WeekGrid st={st} rows={rows} /> : <Skeleton className="h-80" />}</div> : <div className="overflow-x-auto">
+      {view === 'week' ? <div className="p-4">{rows ? <>{list.length === 0 && <p className="pb-3 text-center text-[13px] text-muted-foreground">{q ? 'No bookings match your search.' : 'Nothing to show this week.'}</p>}<WeekGrid st={st} rows={list} /></> : <Skeleton className="h-80" />}</div> : <div className="overflow-x-auto">
         <table className="w-full min-w-[760px] text-[13px]">
           <thead><tr className="border-b text-left text-xs text-muted-foreground">{['When', 'Invitee', 'Meeting', 'Rep', 'Routed by', ''].map(h => <th key={h} className="h-10 px-4 font-medium">{h}</th>)}</tr></thead>
           <tbody className="divide-y">

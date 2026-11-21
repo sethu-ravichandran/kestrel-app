@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 
 // one colour per rep, used across territory cards and the week grid
 export const REP_COLOR: Record<string, string> = {
-  ana: 'bg-[#1f5cff] text-white', sam: 'bg-[#0b1a4a] text-white', ben: 'bg-[#0e7c66] text-white', kofi: 'bg-[#33c3a5] text-[#06302a]',
+  ana: 'bg-[#1f5cff] text-white', sam: 'bg-[#e5488f] text-white', ben: 'bg-[#0e7c66] text-white', kofi: 'bg-[#33c3a5] text-[#06302a]',
   lena: 'bg-[#c6e85a] text-[#253205]', javi: 'bg-[#6d4aff] text-white', mei: 'bg-[#ff9f43] text-[#3d2200]',
 }
 const TERR: [string, string][] = [['NA-West', 'Seattle · San Francisco'], ['NA-East', 'New York · Toronto'], ['EMEA', 'Berlin · Madrid · London'], ['APAC', 'Singapore · Sydney']]
@@ -29,7 +29,7 @@ export function WeekGrid({ st, rows, viewTz = 'America/New_York' }: { st: State;
   const mon = DateTime.fromISO(st.now).setZone(viewTz).startOf('week')
   const days = Array.from({ length: 7 }, (_, i) => mon.plus({ days: i }))
   const H0 = 2, H1 = 24, PX = 28 // px per hour
-  const live = rows.filter(b => b.status === 'confirmed')
+  const live = rows
   const hours = Array.from({ length: (H1 - H0) / 2 }, (_, i) => H0 + i * 2)
   return <div className="overflow-x-auto">
     <div className="min-w-[760px]">
@@ -38,11 +38,11 @@ export function WeekGrid({ st, rows, viewTz = 'America/New_York' }: { st: State;
       </div>
       <div className="relative grid grid-cols-[56px_repeat(7,1fr)]" style={{ height: (H1 - H0) * PX }}>
         <div className="relative">{hours.map(h => <span key={h} className="absolute right-2 -translate-y-1/2 text-[11px] tabular-nums text-muted-foreground" style={{ top: (h - H0) * PX }}>{String(h).padStart(2, '0')}:00</span>)}</div>
-        {days.map(d => <div key={d.toISODate()} className={cn('relative border-l border-[hsl(var(--line))]', d.weekday > 5 && 'bg-[hsl(var(--muted)/.5)]')} style={{ backgroundImage: `repeating-linear-gradient(to bottom, hsl(var(--line)) 0 1px, transparent 1px ${PX * 2}px)` }}>
+        {days.map(d => <div key={d.toISODate()} className={cn('relative overflow-hidden border-l border-[hsl(var(--line))]', d.weekday > 5 && 'bg-[hsl(var(--muted)/.5)]')} style={{ backgroundImage: `repeating-linear-gradient(to bottom, hsl(var(--line)) 0 1px, transparent 1px ${PX * 2}px)` }}>
           {live.filter(b => DateTime.fromISO(b.start).setZone(viewTz).hasSame(d, 'day')).map((b, i) => {
             const s = DateTime.fromISO(b.start).setZone(viewTz), r = st.reps.find(x => x.id === b.repId)
-            return <div key={b.id} title={`${b.who} · ${r?.name}`} style={{ top: (s.hour + s.minute / 60 - H0) * PX + 1, height: PX - 2, animationDelay: i * 40 + 'ms' }}
-              className={cn('absolute inset-x-1 overflow-hidden truncate whitespace-nowrap rounded-md px-1.5 text-[11px] font-medium leading-[28px] shadow-sm ring-1 ring-black/5 transition-transform duration-fast hover:z-10 hover:scale-[1.03] animate-fade-up', REP_COLOR[b.repId] || 'bg-gray-500 text-white')}>
+            return <div key={b.id} title={`${b.who} · ${r?.name}`} style={{ top: Math.max(0, s.hour + s.minute / 60 - H0) * PX + 1, height: PX - 2, animationDelay: i * 40 + 'ms' }}
+              className={cn(b.status === 'cancelled' && 'line-through opacity-50', 'absolute inset-x-1 overflow-hidden truncate whitespace-nowrap rounded-md px-1.5 text-[11px] font-medium leading-[28px] shadow-sm ring-1 ring-black/5 transition-transform duration-fast hover:z-10 hover:scale-[1.03] animate-fade-up', REP_COLOR[b.repId] || 'bg-gray-500 text-white')}>
               <span className="tabular-nums opacity-80">{s.toFormat('HH:mm')}</span> {r ? r.name.split(' ')[0] : ''} <span className="opacity-75">· {b.who.split('@')[1]}</span></div> })}
         </div>)}
       </div>
