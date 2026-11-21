@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { DateTime } from 'luxon'
 import type { Booking, State } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -41,12 +42,15 @@ export function WeekGrid({ st, rows, viewTz = 'America/New_York' }: { st: State;
         {days.map(d => <div key={d.toISODate()} className={cn('relative overflow-hidden border-l border-[hsl(var(--line))]', d.weekday > 5 && 'bg-[hsl(var(--muted)/.5)]')} style={{ backgroundImage: `repeating-linear-gradient(to bottom, hsl(var(--line)) 0 1px, transparent 1px ${PX * 2}px)` }}>
           {live.filter(b => DateTime.fromISO(b.start).setZone(viewTz).hasSame(d, 'day')).map((b, i) => {
             const s = DateTime.fromISO(b.start).setZone(viewTz), r = st.reps.find(x => x.id === b.repId)
-            return <div key={b.id} title={`${b.who} · ${r?.name}`} style={{ top: Math.max(0, s.hour + s.minute / 60 - H0) * PX + 1, height: PX - 2, animationDelay: i * 40 + 'ms' }}
+            const bands = st.buffer && b.status === 'confirmed' ? <>
+              {st.bufferBefore > 0 && <div aria-hidden className={cn('absolute inset-x-2 rounded-t-md opacity-40 [mask-image:repeating-linear-gradient(135deg,#000_0_3px,transparent_3px_6px)]', REP_COLOR[b.repId])} style={{ top: Math.max(0, s.hour + s.minute / 60 - H0) * PX + 1 - Math.max(4, (st.bufferBefore / 60) * PX * 2), height: Math.max(4, (st.bufferBefore / 60) * PX * 2) }} />}
+              {st.bufferAfter > 0 && <div aria-hidden className={cn('absolute inset-x-2 rounded-b-md opacity-40 [mask-image:repeating-linear-gradient(135deg,#000_0_3px,transparent_3px_6px)]', REP_COLOR[b.repId])} style={{ top: Math.max(0, s.hour + s.minute / 60 - H0) * PX + PX - 1, height: Math.max(4, (st.bufferAfter / 60) * PX * 2) }} />}</> : null
+            return <Fragment key={b.id}>{bands}<div title={`${b.who} · ${r?.name}`} style={{ top: Math.max(0, s.hour + s.minute / 60 - H0) * PX + 1, height: PX - 2, animationDelay: i * 40 + 'ms' }}
               className={cn(b.status === 'cancelled' && 'line-through opacity-50', 'absolute inset-x-1 overflow-hidden truncate whitespace-nowrap rounded-md px-1.5 text-[11px] font-medium leading-[28px] shadow-sm ring-1 ring-black/5 transition-transform duration-fast hover:z-10 hover:scale-[1.03] animate-fade-up', REP_COLOR[b.repId] || 'bg-gray-500 text-white')}>
-              <span className="tabular-nums opacity-80">{s.toFormat('HH:mm')}</span> {r ? r.name.split(' ')[0] : ''} <span className="opacity-75">· {b.who.split('@')[1]}</span></div> })}
+              <span className="tabular-nums opacity-80">{s.toFormat('HH:mm')}</span> {r ? r.name.split(' ')[0] : ''} <span className="opacity-75">· {b.who.split('@')[1]}</span></div></Fragment> })}
         </div>)}
       </div>
     </div>
-    <p className="mt-3 text-xs text-muted-foreground">Times shown in New York time, 02:00–24:00. Each colour is one rep.</p>
+    <p className="mt-3 text-xs text-muted-foreground">Times shown in New York time, 02:00–24:00. Each colour is one rep.{st.buffer ? ` Hatched bands are buffer time (${st.bufferBefore}m before, ${st.bufferAfter}m after).` : ''}</p>
   </div>
 }

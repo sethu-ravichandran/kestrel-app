@@ -64,17 +64,18 @@ function route(inv, advance = false, sim = null) {
 // free slots: inside rep's 9–17 AND invitee's 8–19, not clashing with bookings (+buffer)
 function slots(r, invTz, n = 9) {
   const out = [];
-  const buf = DB.buffer ? 10 : 0;
+  const before = DB.buffer ? DB.bufferBefore || 0 : 0, after = DB.buffer ? DB.bufferAfter || 0 : 0;
   const taken = DB.bookings.filter((b) => b.repId === r.id && b.status !== 'cancelled').map((b) => DateTime.fromISO(b.start));
   let d = DEMO_NOW.setZone(r.tz).startOf('day').plus({ days: 1 });
   for (let guard = 0; out.length < n && guard < 30; guard++, d = d.plus({ days: 1 })) {
     if (d.weekday > 5) continue;
-    for (let h = 9; h < 17 && out.length < n; h++) {
-      const s = d.set({ hour: h });
+    for (let m = 9 * 60; m < 17 * 60 && out.length < n; m += 30) { // 30-min grid so buffers matter
+      const h = Math.floor(m / 60), s = d.set({ hour: h, minute: m % 60 });
       if ((r.id.charCodeAt(0) + s.day * 7 + h * 3) % 5 < 2) continue; // pseudo calendar-busy
       const ih = s.setZone(invTz).hour;
       if (ih < 8 || ih >= 19) continue;
-      const clash = taken.some((t) => Math.abs(t.diff(s, 'minutes').minutes) < 30 + buf);
+      // each meeting occupies [start - before, start + 30 + after]; two overlap when starts are closer than 30 + before + after
+      const clash = taken.some((t) => Math.abs(t.diff(s, 'minutes').minutes) < 30 + before + after);
       if (!clash) out.push(s.toUTC().toISO());
     }
   }
@@ -202,7 +203,7 @@ async function handler(req, res) {
   const p = url.pathname, m = req.method;
   if (m === 'OPTIONS') return send(res, 204, '');
   try {
-    if (p === '/api/state' && m === 'GET') return send(res, 200, { reps: DB.reps, rules: DB.rules, buffer: DB.buffer, locs: LOCS, now: DEMO_NOW.toISO() });
+    if (p === '/api/state' && m === 'GET') return send(res, 200, { reps: DB.reps, rules: DB.rules, buffer: DB.buffer, bufferBefore: DB.bufferBefore || 0, bufferAfter: DB.bufferAfter || 0, locs: LOCS, now: DEMO_NOW.toISO() });
     if (p === '/api/route' && m === 'POST') {
       const inv = validInvitee(await readBody(req));
       const r = route(inv);
@@ -220,7 +221,7 @@ async function handler(req, res) {
       const b = { id: 'BK-' + (DB.bookings.length + 1), repId: r.id, who: inv.email, start, tz: inv.tz, topic: inv.topic, why: routed.why, status: 'confirmed' };
       store.saveBooking(b);
       log('booking-page', 'Meeting booked', `${inv.email} → ${r.name} (${DateTime.fromISO(start).setZone(r.tz).toFormat('d LLL HH:mm')} ${r.tz})`);
-      return send(res, 201, { booking: b, rep: r, buffer: DB.buffer });
+      return send(res, 201, { booking: b, rep: r, buffer: DB.buffer, bufferBefore: DB.bufferBefore || 0, bufferAfter: DB.bufferAfter || 0 });
     }
     let cm;
     if ((cm = p.match(/^\/api\/bookings\/([\w-]+)$/)) && m === 'DELETE') {
@@ -243,9 +244,10 @@ async function handler(req, res) {
       return send(res, 200, r);
     }
     if (p === '/api/buffer' && m === 'POST') {
-      store.setBuffer((await readBody(req)).on);
-      log('ops@halden', DB.buffer ? 'Buffer turned on' : 'Buffer turned off', '10 min after every meeting · all reps');
-      return send(res, 200, { buffer: DB.buffer });
+      const bb = await readBody(req); const mins = (v) => (v == null ? null : Math.max(0, Math.min(60, Math.round(Number(v) || 0))));
+      const out = store.setBuffer(bb.on, mins(bb.before), mins(bb.after));
+      log('ops@halden', out.buffer ? 'Buffer updated' : 'Buffer turned off', out.buffer ? `${out.bufferBefore} min before, ${out.bufferAfter} min after every meeting · all reps` : 'All reps');
+      return send(res, 200, out);
     }
     if (p === '/api/insights' && m === 'GET') return send(res, 200, memoInsights());
     if (p === '/api/simulate' && m === 'GET') return send(res, 200, memoSimulate());

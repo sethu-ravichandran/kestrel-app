@@ -65,13 +65,8 @@ export default function Admin({ st, reload, show }: { st: State; reload: () => P
           <p className="col-span-2 flex gap-3 text-[11px] text-white/50"><span className="flex items-center gap-1"><span className="size-2 rounded-full bg-emerald-400" />available</span><span className="flex items-center gap-1"><span className="size-2 rounded-full bg-amber-400" />on leave</span><span className="flex items-center gap-1"><span className="size-2 rounded-full bg-red-400/70" />left</span></p></div>
       </Headline> })()}
     {show === 'routing' && <>
-    {/* buffer nudge */}
-    <Card><CardContent className="flex flex-wrap items-center gap-4 p-5">
-      <span className="text-xs font-medium text-blue-700">{st.buffer ? 'Applied' : 'Suggestion'}</span>
-      {st.buffer ? <p className="flex-1 text-sm"><b>10-min buffer is on for all reps.</b> New bookings leave room for notes and travel.</p>
-        : <div className="min-w-[240px] flex-1"><p className="font-semibold">Your reps had 23 back-to-back meetings last week.</p><p className="text-sm text-muted-foreground">Buffer time already exists, but it was hidden under Advanced settings. 31 accounts asked for it, and only 5 had found it.</p></div>}
-      <Button variant={st.buffer ? 'outline' : 'default'} disabled={pend === 'buf'} aria-busy={pend === 'buf'} onClick={() => run('buf', async () => { await api.buffer(!st.buffer); toast(st.buffer ? 'Buffers off' : '10-min buffers on for all reps'); await refresh() })}>{st.buffer ? 'Undo' : 'Add 10-min buffers for everyone'}</Button>
-    </CardContent></Card>
+    {/* buffer time */}
+    <BufferCard st={st} busy={pend === 'buf'} onSave={(on, before, after, msg) => run('buf', async () => { await api.buffer(on, before, after); toast(msg); await refresh() })} />
 
     <div className="grid items-start gap-4 lg:grid-cols-2">
       <Card><CardHeader><CardTitle>Routing rules</CardTitle><CardDescription>Rules run top to bottom. The first rule that finds an available rep wins, and round robin only breaks ties.</CardDescription></CardHeader>
@@ -183,4 +178,39 @@ function AuditPage({ audit }: { audit: Audit[] }) {
               </li> })}</ol></div>)}
       </CardContent></Card>
   </div>
+}
+
+const BEFORE = [0, 5, 10, 15], AFTER = [0, 5, 10, 15, 30]
+function Seg({ value, opts, onChange, label }: { value: number; opts: number[]; onChange: (v: number) => void; label: string }) {
+  return <div><p className="mb-1.5 text-xs font-medium text-muted-foreground">{label}</p>
+    <div role="radiogroup" aria-label={label} className="inline-flex rounded-full bg-[hsl(var(--muted))] p-1 text-[13px]">{opts.map(o => <button key={o} role="radio" aria-checked={value === o} onClick={() => onChange(o)}
+      className={cn('min-w-[46px] rounded-full px-2.5 py-1 font-medium tabular-nums transition-all duration-fast', value === o ? 'bg-[hsl(var(--card))] text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>{o ? `${o}m` : 'None'}</button>)}</div></div>
+}
+function BufferCard({ st, busy, onSave }: { st: State; busy: boolean; onSave: (on: boolean, before: number, after: number, msg: string) => void }) {
+  const [before, setBefore] = useState(st.bufferBefore || 5), [after, setAfter] = useState(st.bufferAfter || 10)
+  const dirty = st.buffer && (before !== st.bufferBefore || after !== st.bufferAfter)
+  const total = before + 30 + after, pct = (m: number) => `${(m / total) * 100}%`
+  return <Card><CardContent className="space-y-4 p-5">
+    <div className="flex flex-wrap items-start gap-3">
+      <div className="min-w-[240px] flex-1">
+        <span className={cn('inline-flex rounded-md px-1.5 py-0.5 text-[11px] font-medium', st.buffer ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-primary/10 text-primary')}>{st.buffer ? 'On for all reps' : 'Suggestion'}</span>
+        <p className="mt-2 font-semibold">{st.buffer ? 'Buffer time protects every meeting.' : 'Your reps had 23 back-to-back meetings last week.'}</p>
+        <p className="text-sm text-muted-foreground">{st.buffer ? `${st.bufferBefore} min to prepare before and ${st.bufferAfter} min to write notes or travel after. Customers can't book into these gaps.` : 'Buffer time already existed but was hidden under Advanced settings. 31 accounts asked for it; only 5 had found it.'}</p>
+      </div>
+      {st.buffer ? <div className="flex gap-2">
+          {dirty && <Button disabled={busy} aria-busy={busy} onClick={() => onSave(true, before, after, `Buffers updated: ${before}m before, ${after}m after`)}>Save changes</Button>}
+          <Button variant="outline" disabled={busy} onClick={() => onSave(false, before, after, 'Buffers turned off')}>Turn off</Button></div>
+        : <Button disabled={busy} aria-busy={busy} onClick={() => onSave(true, before, after, `Buffers on: ${before}m before, ${after}m after`)}>Turn on for everyone</Button>}
+    </div>
+    <div className="grid items-end gap-5 border-t border-[hsl(var(--line))] pt-4 md:grid-cols-[auto_auto_1fr]">
+      <Seg label="Before (prep)" value={before} opts={BEFORE} onChange={setBefore} />
+      <Seg label="After (notes / travel)" value={after} opts={AFTER} onChange={setAfter} />
+      <div aria-label="Preview of one meeting with buffers"><p className="mb-1.5 text-xs font-medium text-muted-foreground">Preview: one 30-min meeting blocks {total} min</p>
+        <div className="flex h-9 overflow-hidden rounded-lg text-[11px] font-medium">
+          {before > 0 && <div className="grid place-items-center bg-[repeating-linear-gradient(135deg,hsl(var(--primary)/.18)_0_6px,transparent_6px_12px)] text-primary transition-all duration-base" style={{ width: pct(before) }}>{before}m</div>}
+          <div className="grid place-items-center bg-primary text-white transition-all duration-base" style={{ width: pct(30) }}>Meeting</div>
+          {after > 0 && <div className="grid place-items-center bg-[repeating-linear-gradient(135deg,hsl(var(--primary)/.18)_0_6px,transparent_6px_12px)] text-primary transition-all duration-base" style={{ width: pct(after) }}>{after}m</div>}
+        </div></div>
+    </div>
+  </CardContent></Card>
 }

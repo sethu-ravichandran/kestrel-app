@@ -26,7 +26,7 @@ function loadSeed() {
  *   listAudit()                → Audit[]
  *   saveRules(rules)           → Rule[]
  *   updateRep(id, patch)       → Rep | null
- *   setBuffer(on)              → boolean
+ *   setBuffer(on, before, after) → { buffer, bufferBefore, bufferAfter }
  *   nextRoundRobin()           → number (atomic counter in a real DB)
  *   reset()                    → state re-seeded from fixture
  *   version()                  → number, bumped on every write (cache key for derived data / ETags)
@@ -45,7 +45,7 @@ function createMemoryStore() {
     listAudit: () => state.audit,
     saveRules: w((rules) => (state.rules = rules)),
     updateRep: w((id, patch) => { const r = state.reps.find((x) => x.id === id); if (r) Object.assign(r, patch); return r || null; }),
-    setBuffer: w((on) => (state.buffer = !!on)),
+    setBuffer: w((on, before, after) => { state.buffer = !!on; if (before != null) state.bufferBefore = before; if (after != null) state.bufferAfter = after; return { buffer: state.buffer, bufferBefore: state.bufferBefore, bufferAfter: state.bufferAfter } }),
     nextRoundRobin: w(() => state.rrPtr++),
     reset: w(() => (state = loadSeed())),
   };

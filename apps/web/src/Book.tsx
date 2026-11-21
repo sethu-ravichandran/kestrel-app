@@ -32,7 +32,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
   const [sel, setSel] = useState<string | null>(null)
   const [h12, setH12] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [done, setDone] = useState<{ id: string; start: string; buffer: boolean } | null>(null)
+  const [done, setDone] = useState<{ id: string; start: string; buffer: boolean; bufferBefore: number; bufferAfter: number } | null>(null)
   const [err, setErr] = useState('')
   const [demo, setDemo] = useState(false)
   const [dir, setDir] = useState(0)
@@ -58,7 +58,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
   }
   async function confirm() {
     if (!sel) return; setBusy(true); setErr('')
-    try { const o = await api.book(inv, sel); setDone({ id: o.booking.id, start: o.booking.start, buffer: o.buffer }); setStage('done'); toast('Meeting booked') }
+    try { const o = await api.book(inv, sel); setDone({ id: o.booking.id, start: o.booking.start, buffer: o.buffer, bufferBefore: o.bufferBefore, bufferAfter: o.bufferAfter }); setStage('done'); toast('Meeting booked') }
     catch (e) { setErr((e as Error).message); go() } finally { setBusy(false) }
   }
   useEffect(() => { setSel(null) }, [day])
@@ -108,7 +108,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
         {[['What', `${TOPIC[inv.topic]} with Halden Group`], ['When', `${s.setZone(inv.tz).toFormat('cccc d LLLL')} · ${fmtT(s.setZone(inv.tz))} (${city(inv.tz)} time)`], ['Who', `${rep.name}${res?.why === 'owner' ? ' · your account manager' : ''}`], ['Their time', rep.tz === inv.tz ? 'Same time zone as you' : `${fmtT(s.setZone(rep.tz))} in ${city(rep.tz)}`], ['Where', 'Google Meet']].map(([k, v]) =>
           <div key={k} className="grid grid-cols-[90px_1fr] py-2.5"><dt className="font-medium">{k}</dt><dd className="text-muted-foreground">{v}</dd></div>)}
       </dl>
-      {done.buffer && <p className="mt-4 text-xs text-muted-foreground">A 10-minute buffer was added after this meeting on {first(rep.name)}'s calendar.</p>}
+      {done.buffer && <p className="mt-4 text-xs text-muted-foreground">{first(rep.name)}'s calendar also blocks {done.bufferBefore} min before and {done.bufferAfter} min after this meeting, so you won't be rushed.</p>}
       <div className="mt-6 flex justify-center gap-2"><Button variant="outline" onClick={() => go()}>Book another time</Button><Button variant="outline" onClick={() => setStage('intake')}>Start over</Button></div>
     </div></> }
 

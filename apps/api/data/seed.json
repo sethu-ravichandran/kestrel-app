@@ -563,5 +563,7 @@
       "ev": "Smart routing enabled",
       "d": "Workspace switched from round robin to rules"
     }
-  ]
+  ],
+  "bufferBefore": 5,
+  "bufferAfter": 10
 }
