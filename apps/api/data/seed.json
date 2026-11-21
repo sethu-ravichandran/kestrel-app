@@ -138,25 +138,25 @@
     {
       "k": "owner",
       "on": true,
-      "t": "Existing customer → their account owner",
+      "t": "Existing customer \u2192 their account owner",
       "d": "Matches the email domain to named accounts"
     },
     {
       "k": "terr",
       "on": true,
-      "t": "Territory → reps covering the invitee's region",
+      "t": "Territory \u2192 reps covering the invitee's region",
       "d": "Also keeps the meeting inside both people's working day"
     },
     {
       "k": "skill",
       "on": true,
-      "t": "Topic → reps with that skill",
+      "t": "Topic \u2192 reps with that skill",
       "d": "Technical calls only go to solution engineers"
     },
     {
       "k": "lang",
       "on": true,
-      "t": "Language → reps who speak it",
+      "t": "Language \u2192 reps who speak it",
       "d": "Soft rule: dropped if nobody matches"
     }
   ],
@@ -244,16 +244,88 @@
   ],
   "audit": [
     {
-      "daysAgo": 2,
-      "who": "okta-scim",
-      "ev": "User provisioned",
-      "d": "Sam Patel added to NA-West"
+      "daysAgo": 0.1,
+      "who": "booking-page",
+      "ev": "Meeting booked",
+      "d": "it@ferrovia.es \u2192 Javier Soto (technical, Spanish)"
+    },
+    {
+      "daysAgo": 0.3,
+      "who": "booking-page",
+      "ev": "Meeting booked",
+      "d": "ops@harbourline.sg \u2192 Mei Tan (account owner)"
+    },
+    {
+      "daysAgo": 0.6,
+      "who": "ops@halden",
+      "ev": "Meeting cancelled",
+      "d": "BK-8 \u00b7 k.ito@pinecove.io with Ben Carter; slot released"
     },
     {
       "daysAgo": 1,
       "who": "ops@halden",
       "ev": "Routing rule changed",
       "d": "\"Territory\" moved above \"Topic\""
+    },
+    {
+      "daysAgo": 1.2,
+      "who": "booking-page",
+      "ev": "Meeting booked",
+      "d": "dev@acme.ca \u2192 Kofi Mensah (technical, NA-East)"
+    },
+    {
+      "daysAgo": 2,
+      "who": "okta-scim",
+      "ev": "User provisioned",
+      "d": "Sam Patel added to NA-West"
+    },
+    {
+      "daysAgo": 2.1,
+      "who": "ops@halden",
+      "ev": "Skills updated",
+      "d": "Sam Patel: technical, general"
+    },
+    {
+      "daysAgo": 3,
+      "who": "ops@halden",
+      "ev": "Rep marked on leave",
+      "d": "Lena Vogel (until 4 Dec)"
+    },
+    {
+      "daysAgo": 3.4,
+      "who": "kestrel",
+      "ev": "Owner fallback used",
+      "d": "cfo@northfold.de: owner on leave, routed to EMEA pool"
+    },
+    {
+      "daysAgo": 5,
+      "who": "ops@halden",
+      "ev": "Routing rule added",
+      "d": "Language \u2192 reps who speak it (soft rule)"
+    },
+    {
+      "daysAgo": 7,
+      "who": "okta-scim",
+      "ev": "User deprovisioned",
+      "d": "Priya Shah deactivated in Okta"
+    },
+    {
+      "daysAgo": 7,
+      "who": "kestrel",
+      "ev": "Accounts reassigned",
+      "d": "oakmere.com, tidewell.io \u2192 Ana Ruiz"
+    },
+    {
+      "daysAgo": 7,
+      "who": "kestrel",
+      "ev": "Meetings reassigned",
+      "d": "3 upcoming meetings \u2192 Ana Ruiz; invitees notified"
+    },
+    {
+      "daysAgo": 14,
+      "who": "maya@halden",
+      "ev": "Smart routing enabled",
+      "d": "Workspace switched from round robin to rules"
     }
   ]
 }

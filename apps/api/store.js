@@ -12,7 +12,7 @@ const SEED_FILE = process.env.SEED_FILE || path.join(__dirname, 'data', 'seed.js
 function loadSeed() {
   const seed = JSON.parse(fs.readFileSync(SEED_FILE, 'utf8'));
   // audit entries are stored relative to "now" so the demo always looks fresh
-  seed.audit = seed.audit.map(({ daysAgo, ...a }) => ({ t: DateTime.now().minus({ days: daysAgo || 0 }).toISO(), ...a }));
+  seed.audit = seed.audit.map(({ daysAgo, ...a }) => ({ t: DateTime.now().minus({ hours: Math.round((daysAgo || 0) * 24) }).toISO(), ...a }));
   return seed;
 }
 

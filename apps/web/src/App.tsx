@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BarChart3, CalendarDays, ChevronsUpDown, Copy, Moon, Sun, ExternalLink, GitBranch, LayoutList, RotateCcw, ScrollText, Users } from 'lucide-react'
+import { BarChart3, CalendarDays, ChevronsUpDown, Copy, Monitor, Moon, Sun, ExternalLink, GitBranch, LayoutList, RotateCcw, ScrollText, Users } from 'lucide-react'
 import { api, type State } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/input'
@@ -10,8 +10,8 @@ import Admin from './Admin'
 import Bookings from './Bookings'
 import Insights from './Insights'
 
-type Page = 'bookings' | 'insights' | 'page' | 'routing'
-const NAV: { v: Page | 'team' | 'audit'; label: string; icon: typeof LayoutList }[] = [
+type Page = 'bookings' | 'insights' | 'page' | 'routing' | 'team' | 'audit'
+const NAV: { v: Page; label: string; icon: typeof LayoutList }[] = [
   { v: 'bookings', label: 'Bookings', icon: LayoutList }, { v: 'insights', label: 'Insights', icon: BarChart3 }, { v: 'page', label: 'Booking page', icon: CalendarDays },
   { v: 'routing', label: 'Routing', icon: GitBranch }, { v: 'team', label: 'Team & identity', icon: Users }, { v: 'audit', label: 'Audit log', icon: ScrollText }]
 const TITLE: Record<Page, [string, string]> = {
@@ -19,6 +19,8 @@ const TITLE: Record<Page, [string, string]> = {
   insights: ['Insights', 'Is routing getting customers to the right person?'],
   page: ['Booking page', 'What your customers see. Each booking is routed to the right rep.'],
   routing: ['Routing', 'Decide who gets which meeting.'],
+  team: ['Team & identity', 'Who is in the routing pool, and how people join and leave it.'],
+  audit: ['Audit log', 'Every change to routing, team and bookings. Exportable for compliance reviews.'],
 }
 
 function Shell() {
@@ -26,12 +28,16 @@ function Shell() {
   const [st, setSt] = useState<State | null>(null)
   const [page, setPage] = useState<Page>('bookings')
   const [k, setK] = useState(0)
-  const [dark, setDark] = useState(() => { try { const v = localStorage.getItem('kestrel-theme'); return v ? v === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches } catch { return false } })
-  useEffect(() => { document.documentElement.classList.toggle('dark', dark); try { localStorage.setItem('kestrel-theme', dark ? 'dark' : 'light') } catch { /* ignore */ } }, [dark])
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => { try { const v = localStorage.getItem('kestrel-theme'); return v === 'light' || v === 'dark' ? v : 'system' } catch { return 'system' } })
+  useEffect(() => {
+    const mq = matchMedia('(prefers-color-scheme: dark)')
+    const apply = () => document.documentElement.classList.toggle('dark', theme === 'dark' || (theme === 'system' && mq.matches))
+    apply(); try { localStorage.setItem('kestrel-theme', theme) } catch { /* ignore */ }
+    mq.addEventListener('change', apply); return () => mq.removeEventListener('change', apply)
+  }, [theme])
   const reload = async () => setSt(await api.state())
   useEffect(() => { reload() }, [])
   function nav(v: (typeof NAV)[number]['v']) {
-    if (v === 'team' || v === 'audit') { setPage('routing'); setTimeout(() => document.getElementById(v)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120); return }
     setPage(v); window.scrollTo({ top: 0 })
   }
   const link = location.origin + '/halden'
@@ -46,7 +52,11 @@ function Shell() {
         return <button key={n.v} onClick={() => nav(n.v)} className={cn('flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] transition-colors duration-fast', on ? 'bg-primary/20 font-medium text-white shadow-[inset_2px_0_0_hsl(var(--primary))]' : 'text-white/60 hover:bg-white/[.06] hover:text-white')}>
           <I className="size-4" />{n.label}</button> })}</nav>
       <div className="mt-auto space-y-0.5 p-3">
-        <button onClick={() => setDark(!dark)} aria-pressed={dark} className="flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-[13px] text-white/50 hover:bg-white/[.06] hover:text-white">{dark ? <Sun className="size-4" /> : <Moon className="size-4" />}{dark ? 'Light mode' : 'Dark mode'}</button>
+        <div role="radiogroup" aria-label="Theme" className="relative mx-1 mb-1 grid grid-cols-3 rounded-full border border-white/10 bg-white/[.04] p-1">
+          <span aria-hidden className="absolute inset-y-1 left-1 w-[calc((100%-8px)/3)] rounded-full bg-white/15 transition-transform duration-base ease-out" style={{ transform: `translateX(${['light', 'dark', 'system'].indexOf(theme) * 100}%)` }} />
+          {([['light', Sun, 'Light'], ['dark', Moon, 'Dark'], ['system', Monitor, 'System']] as const).map(([v, I, l]) => <button key={v} role="radio" aria-checked={theme === v} aria-label={l} title={l} onClick={() => setTheme(v)}
+            className={cn('relative z-10 flex h-7 items-center justify-center gap-1 rounded-full text-[11px] transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary', theme === v ? 'text-white' : 'text-white/45 hover:text-white/80')}><I className="size-3.5" />{l}</button>)}
+        </div>
         <button onClick={async () => { await api.reset(); await reload(); setK(k + 1); toast('Demo data reset') }} className="flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-[13px] text-white/50 hover:bg-white/[.06] hover:text-white"><RotateCcw className="size-4" />Reset demo data</button>
         <div className="mt-2 flex items-center gap-2.5 border-t border-white/10 px-3 pt-3"><div className="grid size-7 place-items-center rounded-full bg-blue-600 text-[11px] font-semibold text-white">MR</div><div className="text-xs"><p className="font-medium">Maya Raman</p><p className="text-white/50">Admin</p></div></div>
       </div>
@@ -67,7 +77,7 @@ function Shell() {
       </header>
       <main className="mx-auto max-w-6xl px-6 py-8">
         {!st ? <Skeleton className="h-[480px]" /> : <div key={page + k} className="animate-fade-up">
-          {page === 'bookings' ? <Bookings st={st} /> : page === 'insights' ? <Insights st={st} /> : page === 'page' ? <Book st={st} reload={reload} /> : <Admin st={st} reload={reload} />}</div>}
+          {page === 'bookings' ? <Bookings st={st} /> : page === 'insights' ? <Insights st={st} /> : page === 'page' ? <Book st={st} reload={reload} /> : <Admin st={st} reload={reload} show={page as 'routing' | 'team' | 'audit'} />}</div>}
       </main>
     </div>
   </div>

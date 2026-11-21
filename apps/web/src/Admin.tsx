@@ -28,7 +28,7 @@ type Sim = { rows: SimRow[]; oldGood: number; good: number; total: number }
 const Th = (p: React.ThHTMLAttributes<HTMLTableCellElement>) => <th className="h-9 px-3 text-left text-xs font-medium text-muted-foreground" {...p} />
 const Td = ({ className, ...p }: React.TdHTMLAttributes<HTMLTableCellElement>) => <td className={cn('px-3 py-2.5 align-top', className)} {...p} />
 
-export default function Admin({ st, reload }: { st: State; reload: () => Promise<void> }) {
+export default function Admin({ st, reload, show }: { st: State; reload: () => Promise<void>; show: 'routing' | 'team' | 'audit' }) {
   const toast = useToast()
   const [sim, setSim] = useState<Sim | null>(null)
   const [audit, setAudit] = useState<Audit[]>([])
@@ -47,6 +47,7 @@ export default function Admin({ st, reload }: { st: State; reload: () => Promise
   const active = st.reps.filter(r => r.active)
 
   return <div className="space-y-4">
+    {show === 'routing' && <>
     {/* buffer nudge */}
     <Card><CardContent className="flex flex-wrap items-center gap-4 p-5">
       <span className="text-xs font-medium text-blue-700">{st.buffer ? 'Applied' : 'Suggestion'}</span>
@@ -81,7 +82,9 @@ export default function Admin({ st, reload }: { st: State; reload: () => Promise
               <Td><Badge variant={x.oldFit ? 'success' : 'destructive'}>{x.old}</Badge></Td><Td><Badge variant={x.neuFit ? 'success' : 'destructive'}>{x.neu}</Badge></Td></tr>)}</tbody></table></>}
         </CardContent></Card>
     </div>
+    </>}
 
+    {show === 'team' && <>
     <Card id="team" className="scroll-mt-6"><CardHeader><CardTitle>Team</CardTitle></CardHeader><CardContent className="overflow-x-auto">
       <table className="w-full min-w-[640px] text-[13px]"><thead className="border-b border-border"><tr><Th>Rep</Th><Th>Territory</Th><Th>Skills</Th><Th>Languages</Th><Th>Owns</Th><Th>Status</Th></tr></thead>
         <tbody className="divide-y">{st.reps.map(r => <tr key={r.id} className={cn('transition-all hover:bg-muted/50', !r.active && 'opacity-50')}>
@@ -89,7 +92,7 @@ export default function Admin({ st, reload }: { st: State; reload: () => Promise
           <Td>{!r.active ? <Badge variant="destructive">Deprovisioned</Badge> : <Button variant="outline" size="sm" className="w-[84px]" disabled={pend === r.id} aria-busy={pend === r.id} onClick={() => run(r.id, async () => { await api.leave(r.id, !r.away); toast(`${r.name} ${r.away ? 'is back' : 'is on leave'}`); await refresh() })}>{r.away ? 'On leave' : 'Available'}</Button>}</Td></tr>)}</tbody></table>
     </CardContent></Card>
 
-    <div className="grid items-start gap-4 lg:grid-cols-2">
+    <div className="grid items-start gap-4">
       <Card><CardHeader><CardTitle className="flex flex-wrap items-baseline gap-3">Identity &amp; SCIM <Badge variant="success">Okta connected</Badge></CardTitle>
         <CardDescription>When IT deprovisions someone in Okta, Kestrel removes them from routing and hands their accounts and meetings to a teammate in the same territory. Every step is logged.</CardDescription></CardHeader>
         <CardContent className="space-y-3">
@@ -99,11 +102,33 @@ export default function Admin({ st, reload }: { st: State; reload: () => Promise
             <ul className="mt-1 list-disc pl-5"><li>{hand.rep} removed from routing</li><li>{hand.accounts.length ? `${hand.accounts.join(', ')} → ${hand.peer}` : 'No named accounts to move'}</li><li>{hand.meetings} upcoming meetings → {hand.peer}, with one email to each invitee</li></ul></Alert>}
         </CardContent></Card>
 
-      <Card id="audit" className="scroll-mt-6"><CardHeader className="flex-row items-center justify-between space-y-0"><div><CardTitle>Audit log</CardTitle><CardDescription>For compliance reviews</CardDescription></div>
-        <Button variant="outline" size="sm" onClick={() => { location.href = apiUrl('/api/audit.csv') }}><Download />Export CSV</Button></CardHeader>
-        <CardContent className="max-h-[300px] overflow-y-auto"><ol className="divide-y divide-border">{audit.map((a, i) => <li key={a.t + i} className={cn('flex gap-3 py-2 text-[13px]', (!seen.current || !seen.current.has(a.t + a.ev + (audit.length - i))) && 'animate-fade-up')}>
-          <span className="w-[92px] shrink-0 text-[11px] tabular-nums text-muted-foreground">{DateTime.fromISO(a.t).toFormat('d LLL HH:mm')}</span>
-          <div><p className="font-medium">{a.ev} <span className="font-normal text-muted-foreground">· {a.who}</span></p><p className="text-muted-foreground">{a.d}</p></div></li>)}</ol></CardContent></Card>
     </div>
+    </>}
+    {show === 'audit' && <AuditPage audit={audit} />}
   </div>
+}
+
+const ACTORS = [['all', 'All'], ['ops', 'People'], ['okta-scim', 'Okta / SCIM'], ['booking-page', 'Bookings'], ['kestrel', 'System']] as const
+function AuditPage({ audit }: { audit: Audit[] }) {
+  const [f, setF] = useState<(typeof ACTORS)[number][0]>('all')
+  const [q, setQ] = useState('')
+  const match = (a: Audit) => (f === 'all' || (f === 'ops' ? a.who.includes('@') : a.who === f)) && (a.ev + a.d + a.who).toLowerCase().includes(q.toLowerCase())
+  const rows = audit.filter(match)
+  const groups = rows.reduce<Record<string, Audit[]>>((g, a) => { const d = DateTime.fromISO(a.t), k = d.hasSame(DateTime.now(), 'day') ? 'Today' : d.hasSame(DateTime.now().minus({ days: 1 }), 'day') ? 'Yesterday' : d.toFormat('cccc d LLL'); (g[k] ||= []).push(a); return g }, {})
+  const dot = (w: string) => w === 'okta-scim' ? 'bg-[#6d4aff]' : w === 'booking-page' ? 'bg-emerald-500' : w === 'kestrel' ? 'bg-amber-500' : 'bg-primary'
+  return <Card>
+    <CardHeader className="flex-row flex-wrap items-center gap-3 space-y-0">
+      <div className="flex flex-wrap gap-1 rounded-full bg-[#eef1f8] p-1 text-[13px]">{ACTORS.map(([k, l]) => <button key={k} onClick={() => setF(k)} className={cn('rounded-full px-3 py-1 font-medium transition-all duration-fast', f === k ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>{l}</button>)}</div>
+      <input aria-label="Search audit log" placeholder="Search events" value={q} onChange={e => setQ(e.target.value)} className="ml-auto h-9 w-full rounded-full border border-input bg-white px-4 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 sm:w-56" />
+      <Button variant="outline" size="sm" onClick={() => { location.href = apiUrl('/api/audit.csv') }}><Download />Export CSV</Button>
+    </CardHeader>
+    <CardContent>
+      {rows.length === 0 ? <div className="py-14 text-center"><p className="font-medium">No events match</p><p className="mt-1 text-[13px] text-muted-foreground">Try a different filter or search term.</p></div> :
+        Object.entries(groups).map(([day, items]) => <div key={day} className="mb-4 last:mb-0">
+          <p className="mb-1 text-xs font-medium text-muted-foreground">{day}</p>
+          <ol className="relative ml-1 border-l border-[hsl(var(--line))]">{items.map((a, i) => <li key={a.t + i} className="relative py-2 pl-5 text-[13px] animate-fade-up" style={{ animationDelay: i * 25 + 'ms' }}>
+            <span className={cn('absolute -left-[4.5px] top-[13px] size-2 rounded-full ring-4 ring-[hsl(var(--card))]', dot(a.who))} />
+            <div className="flex flex-wrap items-baseline gap-x-2"><span className="font-medium">{a.ev}</span><span className="text-xs text-muted-foreground">{a.who}</span><span className="ml-auto text-xs tabular-nums text-muted-foreground">{DateTime.fromISO(a.t).toFormat('HH:mm')}</span></div>
+            <p className="text-muted-foreground">{a.d}</p></li>)}</ol></div>)}
+    </CardContent></Card>
 }
