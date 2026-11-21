@@ -29,6 +29,7 @@ Round robin hands a meeting to whoever is next in line. Existing customers end u
 | **Respects both clocks** | Only offers times inside the customer's day **and** the rep's day. Times are stored in UTC and shown in both zones. |
 | **Handles people leaving** | A real `PATCH /scim/v2/Users/:id` from Okta removes the rep from routing and hands their accounts and upcoming meetings to a teammate in the same territory. |
 | **Proves it works** | The simulator replays last week's bookings: **right rep 1/8 → 8/8**. Insights tracks the routing mix, demand heatmap and load per rep. |
+| **Protects focus time** | Configurable buffers before and after every meeting. The scheduler never offers a slot that would break them, and they show as hatched bands on the week view. |
 | **Audit-ready** | Every change is logged by actor and source, and can be exported to CSV for compliance reviews. |
 
 ## Tour
@@ -38,7 +39,7 @@ Round robin hands a meeting to whoever is next in line. Existing customers end u
 | **Bookings** | "8 of 20 meetings went straight to the account owner." Territory capacity, week grid, list with an inspector panel. |
 | **Insights** | Right rep first time went from 25% to 97%, with the routing mix over 8 weeks, a demand heatmap and load per rep. |
 | **Booking page** | The customer view: intake → animated match → calendar → confirmation. |
-| **Routing** | Rules you can reorder or switch off, with a live simulator score and a one-click buffer suggestion. |
+| **Routing** | Rules you can reorder or switch off, a live simulator score, and buffer time (before/after) with a preview. |
 | **Team & identity** | Who is in the pool, who is on leave, and Okta/SCIM deprovisioning. |
 | **Audit log** | Source breakdown, a 14-day activity chart and a searchable timeline. |
 
@@ -51,8 +52,8 @@ The bet is **smart routing**. The other loud asks were weighed against revenue a
 | Ask | Signal | Decision |
 |---|---|---|
 | **Smart routing** | 6 of 13 accounts with 200+ seats, $661K ARR; the largest customer is working around it by hand | **The bet.** Built end to end. |
-| **Dark mode** | Loudest ask (46 mentions), but from Starter accounts worth $49K | **Shipped as polish** (Light / Dark / System), not as the sprint's bet. |
-| **Buffer time** | 31 accounts asked; the feature already existed, but only 5 had found it | **No new feature needed.** Shipped a one-click "Add 10-min buffers for everyone" suggestion instead. |
+| **Dark mode** | Loudest ask (46 mentions), but all from Starter accounts worth $49K (2% of ARR), none of them churn risks | **Shipped as polish** (Light / Dark / System), not as the sprint's bet: it wouldn't move the 200+ seat goal or protect a renewal. |
+| **Buffer time** | 31 accounts asked; the feature already existed, but only 5 had found it | **Rebuilt as a visible setting.** Before/after minutes with a live preview, enforced by the scheduler, shown on the week view, plus a one-click suggestion to turn it on. |
 | **Salesforce custom objects** | 19 "Critical" notes, all relayed by sales about prospects; $0 current ARR | **Not built.** Worth a pipeline conversation, not this sprint. |
 
 ## Run it
