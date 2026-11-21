@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kestrel Smart Routing</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/luxon/3.4.4/luxon.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* shadcn/ui-style tokens (zinc + indigo) */
+:root{--background:0 0% 100%;--foreground:240 10% 3.9%;--muted:240 4.8% 95.9%;--muted-foreground:240 3.8% 46.1%;--border:240 5.9% 90%;--ring:243 75% 59%;--primary:243 75% 59%;--primary-foreground:0 0% 100%;--accent:243 100% 97%;--accent-foreground:243 60% 40%;
+--success:142 72% 29%;--success-bg:138 76% 97%;--warning:32 95% 38%;--warning-bg:48 100% 96%;--destructive:0 72% 45%;--destructive-bg:0 86% 97%;
+--radius:10px;--shadow-sm:0 1px 2px rgb(0 0 0/.05);--shadow:0 1px 3px rgb(0 0 0/.08),0 1px 2px -1px rgb(0 0 0/.06);--shadow-lg:0 10px 30px -10px rgb(16 24 40/.18);
+--ease:cubic-bezier(.2,.8,.2,1);--fast:150ms;--med:240ms;
+--bg:hsl(240 5% 97.5%);--card:hsl(var(--background));--ink:hsl(var(--foreground));--mut:hsl(var(--muted-foreground));--line:hsl(var(--border));--pri:hsl(var(--primary));--pri2:hsl(var(--accent));
+--ok:hsl(var(--success));--okb:hsl(var(--success-bg));--warn:hsl(var(--warning));--warnb:hsl(var(--warning-bg));--bad:hsl(var(--destructive));--badb:hsl(var(--destructive-bg))}
+*{box-sizing:border-box}html{-webkit-font-smoothing:antialiased;scrollbar-gutter:stable}
+body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5}
+a{color:var(--pri);text-underline-offset:3px}
+header{position:sticky;top:0;z-index:20;background:hsl(240 10% 3.9%/.92);backdrop-filter:blur(8px);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header b{font-size:15px;letter-spacing:-.01em}.pill{font-size:11px;background:hsl(243 60% 25%);color:hsl(243 100% 88%);padding:3px 9px;border-radius:99px;font-weight:500}
+nav{position:sticky;top:52px;z-index:19;display:flex;gap:2px;padding:8px 20px;background:hsl(0 0% 100%/.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);overflow-x:auto}
+nav button{border:0;background:none;padding:7px 12px;border-radius:8px;font:inherit;font-weight:500;color:var(--mut);cursor:pointer;white-space:nowrap;min-height:36px;transition:color var(--fast),background var(--fast)}
+nav button:hover{color:var(--ink);background:hsl(var(--muted))}nav button.on{background:var(--ink);color:#fff}
+main{max-width:1080px;margin:0 auto;padding:24px 16px 80px}
+section{animation:fadeUp var(--med) var(--ease) both}
+.card{background:var(--card);border:1px solid var(--line);border-radius:calc(var(--radius) + 4px);padding:20px;margin-bottom:16px;box-shadow:var(--shadow-sm);transition:box-shadow var(--med) var(--ease)}
+h2{font-size:18px;margin:0 0 4px;letter-spacing:-.015em;font-weight:600}h3{font-size:14px;margin:0 0 10px;font-weight:600;letter-spacing:-.005em}.sub{color:var(--mut);margin:0 0 16px;max-width:68ch}
+.grid{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}@media(max-width:780px){.grid{grid-template-columns:1fr!important}}
+label{display:block;font-size:12.5px;color:var(--ink);margin:14px 0 6px;font-weight:500}
+select,input{width:100%;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;background:#fff;color:var(--ink);box-shadow:var(--shadow-sm);transition:border-color var(--fast),box-shadow var(--fast)}
+select:focus-visible,input:focus-visible,button:focus-visible,.day:focus-visible{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px hsl(var(--ring)/.25)}
+input[type=range]{height:auto;box-shadow:none;border:0;accent-color:var(--pri)}
+.days{display:flex;gap:6px;overflow-x:auto;padding:6px 2px}
+.day{min-width:62px;border:1px solid var(--line);border-radius:var(--radius);padding:8px 4px;text-align:center;cursor:pointer;background:#fff;position:relative;transition:transform var(--fast) var(--ease),border-color var(--fast),background var(--fast)}
+.day:hover{border-color:hsl(var(--ring)/.5);transform:translateY(-1px)}.day.on{border-color:var(--pri);background:var(--pri2);box-shadow:0 0 0 1px var(--pri) inset}
+.day small{display:block;color:var(--mut);font-size:11px}.day .dst{position:absolute;top:-7px;right:-5px;background:var(--warn);color:#fff;font-size:9px;padding:1px 6px;border-radius:99px}
+.slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:12px}
+.slot{border:1px solid var(--line);border-radius:var(--radius);padding:11px 12px;cursor:pointer;background:#fff;text-align:left;font:inherit;color:inherit;min-height:60px;transition:transform var(--fast) var(--ease),border-color var(--fast),box-shadow var(--fast);animation:pop var(--med) var(--ease) both}
+.slot:hover{border-color:var(--pri);box-shadow:var(--shadow);transform:translateY(-1px)}.slot:active{transform:scale(.98)}
+.slot b{font-size:14px;font-weight:600}.slot span{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+.slots .slot:nth-child(2){animation-delay:25ms}.slots .slot:nth-child(3){animation-delay:50ms}.slots .slot:nth-child(4){animation-delay:75ms}.slots .slot:nth-child(5){animation-delay:100ms}.slots .slot:nth-child(6){animation-delay:125ms}.slots .slot:nth-child(n+7){animation-delay:150ms}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:38px;background:var(--pri);color:#fff;border:1px solid transparent;border-radius:var(--radius);padding:0 16px;font:inherit;font-weight:500;cursor:pointer;box-shadow:var(--shadow-sm);transition:background var(--fast),transform var(--fast) var(--ease),box-shadow var(--fast)}
+.btn:hover{background:hsl(var(--primary)/.9);box-shadow:var(--shadow)}.btn:active{transform:scale(.97)}.btn:disabled{opacity:.5;pointer-events:none}
+.btn.ghost{background:#fff;color:var(--ink);border-color:var(--line)}.btn.ghost:hover{background:hsl(var(--muted))}.btn.sm{height:30px;padding:0 10px;font-size:12.5px}
+.note{border-radius:var(--radius);padding:11px 14px;margin:10px 0;border:1px solid transparent;animation:fadeUp var(--med) var(--ease) both}
+.note.warn{background:var(--warnb);color:var(--warn);border-color:hsl(var(--warning)/.15)}.note.ok{background:var(--okb);color:var(--ok);border-color:hsl(var(--success)/.15)}.note.bad{background:var(--badb);color:var(--bad);border-color:hsl(var(--destructive)/.15)}.note.info{background:var(--pri2);color:hsl(var(--accent-foreground));border-color:hsl(var(--ring)/.12)}
+.tz{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin:14px 0}.tz div{background:hsl(var(--muted));border-radius:var(--radius);padding:12px;animation:pop var(--med) var(--ease) both}.tz small{color:var(--mut);display:block;font-size:12px}.tz b{font-size:20px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.email{border:1px solid var(--line);border-radius:var(--radius);padding:16px;background:hsl(0 0% 99%);font-size:13px;line-height:1.7}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--mut);font-weight:500;font-size:12px}tr{transition:background var(--fast)}tbody tr:hover,table tr:hover td{background:hsl(var(--muted)/.5)}
+.tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:500;border:1px solid var(--line);background:#fff;color:var(--mut);transition:all var(--med) var(--ease)}.tag.ok{background:var(--okb);color:var(--ok);border-color:hsl(var(--success)/.2)}.tag.bad{background:var(--badb);color:var(--bad);border-color:hsl(var(--destructive)/.2)}.tag.warn{background:var(--warnb);color:var(--warn);border-color:hsl(var(--warning)/.2)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.hide{display:none!important}.busy{color:var(--mut);font-size:12.5px}
+details summary{list-style:none;user-select:none}details summary::before{content:'▸';display:inline-block;margin-right:6px;transition:transform var(--fast)}details[open] summary::before{transform:rotate(90deg)}
+details[open] table tr{animation:fadeUp var(--med) var(--ease) both}details[open] table tr:nth-child(2){animation-delay:60ms}details[open] table tr:nth-child(3){animation-delay:120ms}details[open] table tr:nth-child(4){animation-delay:180ms}details[open] table tr:nth-child(5){animation-delay:240ms}
+code{font-size:12px;background:hsl(var(--muted));padding:1px 5px;border-radius:5px}
+/* skeleton: reserves exact space → zero layout shift */
+.sk{background:linear-gradient(90deg,hsl(var(--muted)) 25%,hsl(240 5% 92%) 37%,hsl(var(--muted)) 63%);background-size:400% 100%;animation:shimmer 1.2s ease infinite;border-radius:var(--radius)}
+#rOut{min-height:420px}#sim{min-height:420px}#team{min-height:300px}
+.avatar{width:44px;height:44px;border-radius:50%;background:var(--pri2);color:var(--pri);display:grid;place-items:center;font-weight:600;animation:pop var(--med) var(--ease) both;flex-shrink:0}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:var(--radius);box-shadow:var(--shadow-lg);font-size:13px;z-index:50;animation:toast 2.6s var(--ease) both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}
+@keyframes shimmer{0%{background-position:100% 50%}100%{background-position:0 50%}}
+@keyframes toast{0%{opacity:0;transform:translate(-50%,10px)}10%,85%{opacity:1;transform:translate(-50%,0)}100%{opacity:0;transform:translate(-50%,10px)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important}}
+</style>
+
+</head>
+<body>
+<header><b>Kestrel</b><span class="pill">Smart Routing · prototype</span><span style="margin-left:auto;font-size:12px;color:#98a2b3" id="today"></span><button class="btn ghost sm" id="resetDemo" style="background:#1f2230;color:#c7d2fe;border-color:#312e81">Reset demo</button></header>
+<nav id="nav">
+  <a href="/" style="padding:8px 12px;color:var(--mut);text-decoration:none">← Back to app</a>
+  <button data-t="book" class="on">Time-zone-safe slots</button>
+  <button data-t="mine">Reschedule</button>
+  <button data-t="guard">Clock-change guardian</button>
+  <button data-t="host">Host settings</button>
+</nav>
+<main>
+
+<!-- BOOK -->
+<!-- ROUTE -->
+<section id="t-route" class="hide">
+  <div class="grid">
+    <div class="card">
+      <h3>Talk to Halden Group</h3>
+      <p class="sub">Tell us a little about you and we'll find the right person to meet.</p>
+      <label>Work email</label><input id="rEmail" value="j.moreno@bluecrest.com">
+      <label>Where are you based?</label><select id="rLoc"></select>
+      <label>What's this about?</label><select id="rTopic"><option value="general">General / pricing</option><option value="technical">Technical / integration</option><option value="billing">Billing</option></select>
+      <label>Preferred language</label><select id="rLang"><option>English</option><option>Spanish</option><option>French</option><option>German</option></select>
+      <button class="btn" style="width:100%;margin-top:14px" id="rGo">Find my person →</button>
+      <p class="busy" style="margin-top:10px">Try: <a href="#" data-p="0">existing customer</a> · <a href="#" data-p="1">new lead, Seattle</a> · <a href="#" data-p="2">technical, Madrid, Spanish</a> · <a href="#" data-p="3">owner on leave</a></p>
+    </div>
+    <div class="card" id="rOut"><h3>How routing works now</h3><p class="sub">Old round robin sent every booking to “whoever is next”. A Seattle prospect could land with a New York rep at 6am, and an existing customer would meet a stranger. Halden's ops team was fixing this <b>by hand</b>.</p>
+      <div id="rRulesMini"></div></div>
+  </div>
+  <div class="card hide" id="rConfirm"></div>
+</section>
+
+<!-- RULES -->
+<section id="t-rules" class="hide">
+  <div class="card"><h2>Routing rules · Halden Group</h2><p class="sub">Rules run top to bottom. The first rule that finds an available rep wins, and round robin only breaks ties within that group. Reorder or switch rules off, then check the simulator.</p>
+    <div id="rulesList"></div></div>
+  <div class="card"><h3>Simulator: last week's real bookings, re-routed</h3><p class="sub">The same 8 bookings, comparing old round robin with these rules.</p><div id="sim"></div></div>
+  <div class="card"><h3>Team</h3><div id="team"></div></div>
+  <div class="card" id="bufNudge"></div>
+  <div class="card"><h3>Identity: SSO &amp; SCIM <span class="tag ok">Okta connected</span></h3>
+    <p class="sub">When IT deprovisions someone in Okta, Kestrel removes them from routing, hands their accounts and upcoming meetings to a teammate in the same territory, and records every step in the audit log. Nobody gets booked with a person who has left.</p>
+    <div class="row"><select id="depSel" style="max-width:220px"></select><button class="btn" id="depGo">Simulate: Okta deprovisions this user</button></div>
+    <div id="depOut"></div>
+  </div>
+  <div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Audit log</h3><button class="btn ghost sm" id="auditCsv">Export CSV</button></div><div id="audit" style="margin-top:10px"></div></div>
+</section>
+
+<section id="t-book">
+  <div class="grid">
+    <div class="card">
+      <h3 id="mtitle"></h3>
+      <p class="sub" id="mhost"></p>
+      <label>Your time zone (auto-detected)</label>
+      <select id="invTz"></select>
+      <label>Your name</label><input id="invName" value="Daniel Okafor">
+      <div class="note info" style="font-size:12px">Every time below is shown in <b>your</b> zone and the <b>host's</b> zone. No guessing whose 10:00 it is.</div>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><h3 style="margin:0">Pick a day</h3>
+        <button class="btn ghost sm" id="jump">Jump to March 2027 (clock changes) →</button></div>
+      <div class="days" id="days" style="margin-top:10px"></div>
+      <div id="dayNote"></div>
+      <div class="slots" id="slots"></div>
+      <p class="busy" id="busyNote"></p>
+    </div>
+  </div>
+  <div class="card hide" id="confirm"></div>
+</section>
+
+<!-- MINE -->
+<section id="t-mine" class="hide">
+  <div class="card"><h2>Your bookings</h2><p class="sub">Reschedule in one step. You don't cancel first. The old slot frees up straight away, and everyone gets <b>one</b> clear email instead of three.</p>
+  <div id="mineList"></div></div>
+  <div class="card hide" id="reCard"></div>
+</section>
+
+<!-- GUARD -->
+<section id="t-guard" class="hide">
+  <div class="card">
+    <h2>Clock-change guardian</h2>
+    <p class="sub">The US, Europe and Australia change their clocks on different dates. For a few weeks each year the gap between two offices shifts by an hour, and that's when "meeting moved on its own" tickets spike. The guardian scans upcoming bookings for that window and fixes them before anyone shows up at the wrong time.</p>
+    <div class="row"><button class="btn" id="scan">Scan upcoming bookings</button><span class="busy" id="scanMeta"></span></div>
+    <div id="scanOut"></div>
+  </div>
+  <div class="card">
+    <h3>Time travel: old Kestrel vs TimeSafe</h3>
+    <p class="sub">A weekly 10:00 Berlin call with a Toronto client, set up in February. Drag through spring to see what each system does.</p>
+    <input type="range" id="tt" min="0" max="7" value="0">
+    <div id="ttOut"></div>
+  </div>
+</section>
+
+<!-- HOST -->
+<section id="t-host" class="hide">
+  <div class="card"><h2>Host settings</h2><p class="sub">The host's time zone is the source of truth for working hours. Invitees can never book outside them, whatever their own clock says.</p>
+  <div class="grid" style="grid-template-columns:1fr 1fr">
+    <div><label>Host</label><input id="hName"><label>Host time zone</label><select id="hTz"></select>
+      <label>Working hours (host time)</label><div class="row"><input id="hStart" type="number" min="0" max="23" style="width:80px"> to <input id="hEnd" type="number" min="1" max="24" style="width:80px"></div></div>
+    <div><label>Meeting length (min)</label><input id="hLen" type="number" step="15">
+      <label>Buffer before (prep, min)</label><input id="hBefore" type="number" step="5">
+      <label>Buffer after (notes / travel, min)</label><input id="hAfter" type="number" step="5">
+      <div class="note ok" style="font-size:12px">Buffers now ship <b>on by default</b> (10 min after). 31 accounts asked for "breathing room", but only 5 had found the existing setting.</div></div>
+  </div>
+  <div class="row" style="margin-top:12px"><button class="btn" id="saveHost">Save & preview booking page</button></div></div>
+</section>
+</main>
+
+<script>
+const {DateTime}=luxon;
+const NOW=DateTime.fromISO('2026-11-23T09:00',{zone:'Europe/Berlin'}); // demo "today"
+const ZONES=['Europe/Berlin','America/Toronto','America/New_York','America/Los_Angeles','Europe/London','Asia/Singapore','Australia/Sydney','Asia/Kolkata','America/Sao_Paulo'];
+const S={host:{name:'Lena Vogel · Marlow Legal',tz:'Europe/Berlin',start:9,end:17,len:30,before:0,after:10},
+  bookings:[],day:null,sel:null,re:null};
+// seed: host's existing busy events (calendar sync)
+function seed(){const b=[];let d=NOW.startOf('day');for(let i=0;i<130;i++){const x=d.plus({days:i});if(x.weekday>5)continue;
+  if(i%2==0)b.push({id:'busy'+i,title:'Internal',start:x.set({hour:11}),busy:true});
+  if(i%3==0)b.push({id:'busy2'+i,title:'Client call',start:x.set({hour:14,minute:30}),busy:true});}
+  S.bookings=b.concat([
+   {id:'B1',title:'Contract review',who:'Daniel Okafor',invTz:'America/Toronto',start:DateTime.fromISO('2026-12-02T15:00',{zone:'Europe/Berlin'})},
+   {id:'B2',title:'Weekly sync',who:'Amy Chen · Orrin Physio',invTz:'America/New_York',start:DateTime.fromISO('2027-03-17T10:00',{zone:'Europe/Berlin'})},
+   {id:'B3',title:'Quarterly review',who:'Raj Patel · Greywell Logistics',invTz:'Australia/Sydney',start:DateTime.fromISO('2027-03-30T09:00',{zone:'Europe/Berlin'})},
+   {id:'B4',title:'Onboarding',who:'Sofia Ruiz',invTz:'Europe/London',start:DateTime.fromISO('2027-03-24T16:00',{zone:'Europe/Berlin'})},
+   {id:'B5',title:'Pricing call',who:'Tom Hale · Corvane',invTz:'America/Los_Angeles',start:DateTime.fromISO('2027-03-10T17:00',{zone:'Europe/Berlin'})},
+   {id:'B6',title:'Weekly coaching',who:'Mia Lee',invTz:'Asia/Singapore',start:DateTime.fromISO('2027-04-06T09:30',{zone:'Europe/Berlin'})}]);}
+seed();
+const $=id=>document.getElementById(id);
+const fmt=(dt,z)=>dt.setZone(z).toFormat('ccc d LLL · HH:mm');
+const city=z=>z.split('/').pop().replace('_',' ');
+const abbr=(dt,z)=>dt.setZone(z).toFormat('ZZZZ');
+// offset gap between two zones changes within +-7 days => DST-risk window
+function gap(dt,a,b){return dt.setZone(a).offset-dt.setZone(b).offset}
+function dstRisk(dt,a,b){const g=gap(dt,a,b);for(const d of[-7,-3,3,7]){const g2=gap(dt.plus({days:d}),a,b);if(g2!==g)return{was:g2,now:g,dir:d}}return null}
+function zoneChange(day,z){const s=day.setZone(z).startOf('day');return s.offset!==s.plus({days:1}).offset}
+
+// ---- nav
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+function tab(t){document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x.dataset.t==t));
+ ['route','rules','book','mine','guard','host'].forEach(x=>{const el=$('t-'+x);el.classList.toggle('hide',x!=t);if(x==t){el.style.animation='none';el.offsetHeight;el.style.animation=''}});if(t=='mine')renderMine();if(t=='host')fillHost();if(t=='rules')renderRules();}
+
+// ---- book
+function initBook(){const det=Intl.DateTimeFormat().resolvedOptions().timeZone;const zs=[...new Set([det,...ZONES])];
+ $('invTz').innerHTML=zs.map(z=>`<option ${z=='America/Toronto'?'selected':''}>${z}</option>`).join('');
+ $('invTz').onchange=renderBook;$('jump').onclick=()=>{S.day=DateTime.fromISO('2027-03-15',{zone:S.host.tz});renderBook(DateTime.fromISO('2027-03-08',{zone:S.host.tz}))};
+ S.day=NOW.startOf('day');renderBook();}
+let stripStart=null;
+function renderBook(start){const h=S.host,inv=$('invTz').value;if(start instanceof DateTime)stripStart=start;if(!stripStart)stripStart=NOW.startOf('day');
+ $('mtitle').textContent=`${h.len}-min consultation`;$('mhost').innerHTML=`with ${h.name}<br>Host is in ${city(h.tz)} (${abbr(NOW,h.tz)}) · ${h.start}:00–${h.end}:00 their time`;
+ let html='';for(let i=0;i<14;i++){const d=stripStart.plus({days:i});const risk=zoneChange(d,h.tz)||zoneChange(d,inv);
+  html+=`<div class="day ${d.hasSame(S.day,'day')?'on':''}" data-d="${d.toISODate()}">${risk?'<span class="dst">clock</span>':''}<small>${d.toFormat('ccc')}</small><b>${d.day}</b><small>${d.toFormat('LLL')}</small></div>`}
+ $('days').innerHTML=html;$('days').querySelectorAll('.day').forEach(e=>e.onclick=()=>{S.day=DateTime.fromISO(e.dataset.d,{zone:h.tz});renderBook()});
+ const r=dstRisk(S.day.set({hour:12}),h.tz,inv);
+ $('dayNote').innerHTML=r?`<div class="note warn">⏰ <b>Clock-change week.</b> The gap between ${city(inv)} and ${city(h.tz)} is ${Math.abs(r.now/60)}h this week but ${Math.abs(r.was/60)}h ${r.dir>0?'next':'last'} week. The times below are already correct for this exact date.</div>`:'';
+ const sl=slotsFor(S.day);
+ $('slots').innerHTML=sl.length?sl.map(s=>`<button class="slot" data-s="${s.toISO()}"><b>${s.setZone(inv).toFormat('HH:mm')}</b> <small>your time · ${s.setZone(inv).toFormat('ccc d LLL')}${(s.setZone(inv).hour<7||s.setZone(inv).hour>=21)?' · 🌙 outside your day':''}</small><span>${s.setZone(h.tz).toFormat('HH:mm')} host time (${city(h.tz)})</span></button>`).join(''):'<p class="busy">No times this day.</p>';
+ $('slots').querySelectorAll('.slot').forEach(e=>e.onclick=()=>book(DateTime.fromISO(e.dataset.s).setZone(h.tz)));
+ const hid=hiddenCount(S.day);$('busyNote').textContent=hid?`${hid} slots hidden: they're outside ${city(h.tz)} working hours, clash with calendar events, or fall inside a ${h.before+h.after}-min buffer.`:'';}
+function overlaps(s,e,ignore){const h=S.host;return S.bookings.some(b=>{if(b.id===ignore)return false;const bs=b.start.minus({minutes:b.busy?0:h.before}),be=b.start.plus({minutes:(b.busy?60:h.len)+(b.busy?0:h.after)});
+ return s.minus({minutes:h.before})<be&&e.plus({minutes:h.after})>bs})}
+function allSlots(day){const h=S.host,out=[];const d=day.setZone(h.tz).startOf('day');if(d.weekday>5)return out;
+ for(let m=h.start*60;m+h.len<=h.end*60;m+=15){out.push(d.plus({minutes:m}))}return out}
+function slotsFor(day,ignore){return allSlots(day).filter(s=>s>NOW&&!overlaps(s,s.plus({minutes:S.host.len}),ignore)&&s.minute%30==0)}
+function hiddenCount(day){return allSlots(day).filter(s=>s.minute%30==0).length-slotsFor(day).length}
+function zonesBlock(dt,inv,extra){const zs=[...new Set([inv,S.host.tz,...(extra||[])])];
+ return `<div class="tz">${zs.map(z=>`<div><small>${z==inv?'You':z==S.host.tz?'Host':''} · ${city(z)} (${abbr(dt,z)})</small><b>${dt.setZone(z).toFormat('HH:mm')}</b><small>${dt.setZone(z).toFormat('cccc d LLL')}</small></div>`).join('')}<div><small>UTC (stored)</small><b>${dt.toUTC().toFormat('HH:mm')}</b><small>${dt.toUTC().toFormat('d LLL')}</small></div></div>`}
+function book(dt){const inv=$('invTz').value,name=$('invName').value||'Guest';const b={id:'B'+Date.now(),title:`${S.host.len}-min consultation`,who:name,invTz:inv,start:dt};S.bookings.push(b);
+ const c=$('confirm');c.classList.remove('hide');
+ c.innerHTML=`<h2>✅ Booked</h2><p class="sub">Saved as one instant in time (UTC) and shown in each person's own zone. It can't drift when clocks change.</p>${zonesBlock(dt,inv)}
+ ${S.host.after||S.host.before?`<div class="note ok">Buffer protected: ${S.host.before?S.host.before+' min before, ':''}${S.host.after} min after are blocked on ${S.host.name.split(' ·')[0]}'s calendar.</div>`:''}
+ <h3>Confirmation email preview</h3>${emailHtml(b,'confirmed')}
+ <div class="row" style="margin-top:12px"><button class="btn" onclick="ics('${b.id}')">Add to calendar (.ics)</button><button class="btn ghost" onclick="tab('mine')">Manage booking →</button></div>`;
+ c.scrollIntoView({behavior:'smooth'});renderBook();}
+function emailHtml(b,kind,old){const h=S.host,dt=b.start;return `<div class="email"><b>Subject:</b> ${kind=='moved'?'Updated: ':''}${b.title}: ${dt.setZone(b.invTz).toFormat('ccc d LLL, HH:mm')} your time (${city(b.invTz)})<br><br>
+ Hi ${b.who.split(' ')[0]},<br>${kind=='moved'?`Your meeting has <b>moved</b>. <s>${fmt(old,b.invTz)}</s> → <b>${fmt(dt,b.invTz)}</b>. The old time is cancelled, and there's nothing else to do.<br>`:`You're booked with ${h.name}.<br>`}
+ 🕙 <b>${dt.setZone(b.invTz).toFormat('cccc d LLLL, HH:mm')} ${city(b.invTz)} time (${abbr(dt,b.invTz)})</b><br>
+ &nbsp;&nbsp;&nbsp;&nbsp;= ${dt.setZone(h.tz).toFormat('HH:mm')} in ${city(h.tz)} (${abbr(dt,h.tz)})${dstRisk(dt,h.tz,b.invTz)?'<br>⏰ Heads up: clocks change around this date, and this time already accounts for it.':''}<br><br>
+ <a href="#" onclick="tab('mine');return false">Reschedule in one click</a> · <a href="#">Cancel</a></div>`}
+function ics(id){const b=S.bookings.find(x=>x.id==id);const f=d=>d.toUTC().toFormat("yyyyLLdd'T'HHmmss'Z'");
+ const t=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Kestrel//TimeSafe//EN\r\nBEGIN:VEVENT\r\nUID:${b.id}@kestrel\r\nDTSTAMP:${f(DateTime.utc())}\r\nDTSTART:${f(b.start)}\r\nDTEND:${f(b.start.plus({minutes:S.host.len}))}\r\nSUMMARY:${b.title} with ${S.host.name}\r\nEND:VEVENT\r\nEND:VCALENDAR`;
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/calendar'}));a.download='kestrel-booking.ics';a.click();}
+
+// ---- mine / reschedule
+function renderMine(){const list=S.bookings.filter(b=>!b.busy).sort((a,b)=>a.start-b.start);
+ $('mineList').innerHTML=`<table><tr><th>Meeting</th><th>Invitee</th><th>Their time</th><th>Host time</th><th></th></tr>${list.map(b=>`<tr><td>${b.title}</td><td>${b.who}</td><td>${fmt(b.start,b.invTz)} <span class="busy">${city(b.invTz)}</span></td><td>${b.start.setZone(S.host.tz).toFormat('HH:mm')}</td><td><button class="btn ghost sm" onclick="startRe('${b.id}')">Reschedule</button></td></tr>`).join('')}</table>`}
+function startRe(id){const b=S.bookings.find(x=>x.id==id);S.re={b,day:b.start.setZone(S.host.tz).startOf('day')};drawRe()}
+function drawRe(){const {b,day}=S.re,c=$('reCard');c.classList.remove('hide');
+ let days='';for(let i=-2;i<10;i++){const d=day.plus({days:i});days+=`<div class="day ${i==0?'on':''}" onclick="S.re.day=DateTime.fromISO('${d.toISODate()}',{zone:S.host.tz});drawRe()"><small>${d.toFormat('ccc')}</small><b>${d.day}</b><small>${d.toFormat('LLL')}</small></div>`}
+ const sl=slotsFor(day,b.id);
+ c.innerHTML=`<h3>Reschedule “${b.title}” with ${b.who}</h3><p class="sub">Currently ${fmt(b.start,b.invTz)} ${city(b.invTz)} time. Pick a new time and the old one is released right away.</p>
+ ${b.start.diff(NOW,'hours').hours<24?'<div class="note bad">Less than 24h away. The host\'s cut-off means only the host can move this.</div>':''}
+ <div class="days">${days}</div><div class="slots">${sl.map(s=>`<button class="slot" onclick="doRe('${s.toISO()}')"><b>${s.setZone(b.invTz).toFormat('HH:mm')}</b> <small>${city(b.invTz)}</small><span>${s.setZone(S.host.tz).toFormat('HH:mm')} host time</span></button>`).join('')||'<p class="busy">No free times.</p>'}</div>`;
+ c.scrollIntoView({behavior:'smooth'})}
+function doRe(iso){const b=S.re.b,old=b.start;b.start=DateTime.fromISO(iso).setZone(S.host.tz);const c=$('reCard');
+ c.innerHTML=`<h2>🔁 Moved, all in one step</h2><div class="note ok">The old slot (${fmt(old,S.host.tz)} host time) is <b>free again</b> for other customers. Both calendars are updated and <b>one</b> email has gone out, instead of cancel + rebook + confirm.</div>${zonesBlock(b.start,b.invTz)}${emailHtml(b,'moved',old)}`;renderMine();renderBook()}
+
+// ---- guardian
+$('scan').onclick=()=>{const h=S.host,res=S.bookings.filter(b=>!b.busy).map(b=>({b,r:dstRisk(b.start,h.tz,b.invTz)})).filter(x=>x.r);
+ $('scanMeta').textContent=`Scanned ${S.bookings.filter(b=>!b.busy).length} bookings · ${res.length} fall in a clock-change window`;
+ $('scanOut').innerHTML=`<table style="margin-top:12px"><tr><th>Booking</th><th>Correct time for invitee</th><th>What old Kestrel would show</th><th>Status</th></tr>${res.map(({b,r})=>{
+  const naive=b.start.setZone(h.tz).minus({minutes:(r.now-r.was)});
+  return `<tr id="g-${b.id}"><td>${b.title}<br><span class="busy">${b.who}</span></td><td><b>${fmt(b.start,b.invTz)}</b><br><span class="busy">${city(b.invTz)}</span></td><td><s>${fmt(naive,b.invTz)}</s><br><span class="busy">off by ${Math.abs(r.now-r.was)/60}h</span></td><td><span class="tag warn">At risk</span></td></tr>`}).join('')}</table>
+ ${res.length?`<div class="row" style="margin-top:12px"><button class="btn" id="fixAll">Send clarified reminders to all ${res.length}</button><span class="busy">Each reminder states both cities' times and says clocks are changing.</span></div>`:''}`;
+ const f=$('fixAll');if(f)f.onclick=()=>{res.forEach(({b})=>{const row=$('g-'+b.id);row.lastElementChild.innerHTML='<span class="tag ok">Reminder sent ✓</span>'});f.disabled=true;f.textContent='All invitees notified ✓'}};
+function tt(){const i=+$('tt').value,h='Europe/Berlin',inv='America/Toronto';const first=DateTime.fromISO('2027-02-24T10:00',{zone:h});
+ const correct=first.plus({weeks:i});const old=DateTime.fromMillis(first.toMillis()+i*7*864e5,{zone:h}); // fixed-UTC recurrence bug
+ const ok=+correct===+old;
+ $('ttOut').innerHTML=`<p><b>Week of ${correct.toFormat('d LLL yyyy')}</b>${i>=3&&i<5?' · US has changed clocks, Europe hasn\'t yet':''}${i>=5?' · both have changed':''}</p>
+ <div class="grid" style="grid-template-columns:1fr 1fr"><div class="note ${ok?'ok':'bad'}"><b>Old Kestrel</b> (stores a fixed UTC repeat)<br>Berlin: <b>${old.setZone(h).toFormat('HH:mm')}</b> · Toronto: ${old.setZone(inv).toFormat('HH:mm')}<br>${ok?'Fine… for now':'❌ Host\'s 10:00 meeting “moved by an hour on its own”'}</div>
+ <div class="note ok"><b>TimeSafe</b> (repeats on host wall-clock)<br>Berlin: <b>${correct.setZone(h).toFormat('HH:mm')}</b> · Toronto: ${correct.setZone(inv).toFormat('HH:mm')}<br>✅ Always 10:00 for the host. The invitee is told in advance if their time shifts.</div></div>`}
+$('tt').oninput=tt;
+
+// ---- host
+function fillHost(){const h=S.host;$('hTz').innerHTML=ZONES.map(z=>`<option ${z==h.tz?'selected':''}>${z}</option>`).join('');
+ $('hName').value=h.name;$('hStart').value=h.start;$('hEnd').value=h.end;$('hLen').value=h.len;$('hBefore').value=h.before;$('hAfter').value=h.after}
+$('saveHost').onclick=()=>{const h=S.host;h.name=$('hName').value;h.tz=$('hTz').value;h.start=+$('hStart').value;h.end=+$('hEnd').value;h.len=+$('hLen').value||30;h.before=+$('hBefore').value||0;h.after=+$('hAfter').value||0;
+ S.day=S.day.setZone(h.tz);stripStart=null;$('confirm').classList.add('hide');tab('book');renderBook()};
+
+$('today').textContent='Demo date: '+NOW.toFormat('ccc d LLL yyyy');
+// ================= SMART ROUTING (client → API) =================
+function toast(m){document.querySelectorAll('.toast').forEach(x=>x.remove());const d=document.createElement('div');d.className='toast';d.setAttribute('role','status');d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),2700)}
+const api=async(p,o={})=>{const r=await fetch(p,{headers:{'Content-Type':'application/json'},...o,body:o.body?JSON.stringify(o.body):undefined});const j=await r.json();if(!r.ok)throw new Error(j.error||r.status);return j};
+let ST={reps:[],rules:[],locs:[],buffer:false};
+async function refresh(){ST=await api('/api/state')}
+function readInv(){const L=ST.locs[$('rLoc').selectedIndex];return {email:$('rEmail').value,loc:L[0],tz:L[1],terr:L[2],topic:$('rTopic').value,lang:$('rLang').value}}
+const first=n=>n.split(' ')[0];
+async function renderRoute(){const inv=readInv();$('rOut').innerHTML='<div class="row" style="gap:12px"><div class="sk" style="width:44px;height:44px;border-radius:50%"></div><div style="flex:1"><div class="sk" style="height:20px;width:55%"></div><div class="sk" style="height:14px;width:75%;margin-top:8px"></div></div></div><div class="sk" style="height:150px;margin:16px 0"></div><div class="slots">'+'<div class="sk" style="height:60px"></div>'.repeat(6)+'</div>';await new Promise(r=>setTimeout(r,280));
+ const res=await api('/api/route',{method:'POST',body:inv}),rep=res.rep;
+ if(!rep){$('rOut').innerHTML='<div class="note bad">No one is available right now. Try again later.</div>';return}
+ $('rOut').innerHTML=`<div class="row" style="gap:12px"><div class="avatar">${rep.name.split(' ').map(x=>x[0]).join('')}</div>
+ <div><h2 style="margin:0">You'll meet ${rep.name}</h2><span class="busy">${rep.terr} · ${city(rep.tz)} · ${rep.skills.join(', ')} · speaks ${rep.langs.join(', ')}</span></div></div>
+ <details style="margin:12px 0" open><summary style="cursor:pointer;font-weight:600">Why ${first(rep.name)}?</summary>
+ <table style="margin-top:6px">${res.trace.map(x=>`<tr><td style="width:46%">${x.t}</td><td><span class="tag ${x.s=='ok'?'ok':x.s=='warn'?'warn':''}">${x.r}</span></td></tr>`).join('')}</table></details>
+ <h3>Pick a time <span class="busy">(only times inside both your day and ${first(rep.name)}'s day${ST.buffer?', with a 10-min buffer':''})</span></h3>
+ <div class="slots">${res.slots.map(s=>{const d=DateTime.fromISO(s);return `<button class="slot" data-s="${s}"><b>${d.setZone(inv.tz).toFormat('ccc d LLL · HH:mm')}</b> <small>your time</small><span>${d.setZone(rep.tz).toFormat('HH:mm')} for ${first(rep.name)} (${city(rep.tz)})</span></button>`}).join('')}</div>`;
+ $('rOut').querySelectorAll('.slot').forEach(e=>e.onclick=async()=>{$('rOut').querySelectorAll('.slot').forEach(x=>x.disabled=true);const c=$('rConfirm');c.classList.remove('hide');
+  try{const out=await api('/api/bookings',{method:'POST',body:{inv,start:e.dataset.s}});const s=DateTime.fromISO(out.booking.start),r=out.rep;
+  c.innerHTML=`<h2>✅ Booked with ${r.name}</h2><p class="busy">Booking ${out.booking.id} saved on the server.</p>${zonesBlockR(s,inv.tz,r.tz)}${out.buffer?`<div class="note ok">10-min buffer blocked after this meeting on ${first(r.name)}'s calendar.</div>`:''}
+  <div class="email"><b>Subject:</b> Halden Group · ${s.setZone(inv.tz).toFormat('ccc d LLL, HH:mm')} your time (${city(inv.tz)})<br><br>Hi,<br>You're meeting <b>${r.name}</b>${res.why=='owner'?', your account manager':`, our ${inv.topic=='technical'?'solutions engineer':'specialist'} for ${inv.terr}`}.<br>🕙 <b>${s.setZone(inv.tz).toFormat('cccc d LLLL, HH:mm')} ${city(inv.tz)} time</b> = ${s.setZone(r.tz).toFormat('HH:mm')} ${city(r.tz)}<br><br><a href="#">Reschedule</a> · <a href="#">Cancel</a></div>`;
+  toast('Booked · confirmation email sent');renderRoute()}catch(err){c.innerHTML=`<div class="note bad">${err.message}</div>`}
+  c.scrollIntoView({behavior:'smooth'})})}
+function zonesBlockR(dt,a,b){return `<div class="tz">${[[a,'You'],[b,'Rep']].map(([z,l])=>`<div><small>${l} · ${city(z)}</small><b>${dt.setZone(z).toFormat('HH:mm')}</b><small>${dt.setZone(z).toFormat('cccc d LLL')}</small></div>`).join('')}<div><small>UTC (stored)</small><b>${dt.toUTC().toFormat('HH:mm')}</b></div></div>`}
+async function renderRules(){await refresh();const RULES=ST.rules;
+ const mini=RULES.map((r,i)=>`<div class="note ${r.on?'info':''}" style="margin:6px 0;${r.on?'':'opacity:.5'}"><b>${i+1}.</b> ${r.t}</div>`).join('')+'<div class="note" style="background:var(--bg);margin:6px 0"><b>Then:</b> round robin to break ties</div>';
+ if($('rRulesMini'))$('rRulesMini').innerHTML='<h3 style="margin-top:14px">Halden\'s routing rules</h3>'+mini;
+ $('rulesList').innerHTML=RULES.map((r,i)=>`<div class="row" style="border:1px solid var(--line);border-radius:10px;padding:10px;margin:6px 0;${r.on?'':'opacity:.55'}">
+  <b style="width:20px">${i+1}</b><div style="flex:1;min-width:180px"><b>${r.t}</b><br><span class="busy">${r.d}</span></div>
+  <button class="btn ghost sm" onclick="mv(${i},-1)">↑</button><button class="btn ghost sm" onclick="mv(${i},1)">↓</button>
+  <button class="btn sm ${r.on?'':'ghost'}" onclick="tog(${i})">${r.on?'On':'Off'}</button></div>`).join('')+'<div class="busy" style="padding:6px 10px">Fallback: round robin within whatever group is left</div>';
+ const sim=await api('/api/simulate');
+ $('sim').innerHTML=`<div class="tz"><div><small>Old round robin</small><b>${sim.oldGood}/${sim.total}</b><small>right rep</small></div><div><small>Smart routing</small><b style="color:var(--ok)">${sim.good}/${sim.total}</b><small>right rep</small></div><div><small>Manual re-assigns saved</small><b>${sim.good-sim.oldGood}</b><small>per ${sim.total} bookings</small></div></div><table><tr><th>Invitee</th><th>Old round robin</th><th>Smart routing</th></tr>${sim.rows.map(x=>`<tr><td>${x.inv.email}<br><span class="busy">${x.inv.loc} · ${x.inv.topic} · ${x.inv.lang}</span></td><td>${x.old} <span class="tag ${x.oldFit?'ok':'bad'}">${x.oldFit?'fit':'mismatch'}</span></td><td>${x.neu} <span class="tag ${x.neuFit?'ok':'bad'}">${x.neuFit?'fit':'mismatch'}</span></td></tr>`).join('')}</table>`;
+ $('team').innerHTML=`<table><tr><th>Rep</th><th>Territory</th><th>Skills</th><th>Languages</th><th>Owns</th><th>Status</th></tr>${ST.reps.map(r=>`<tr style="${r.active?'':'opacity:.5'}"><td>${r.name}</td><td>${r.terr}</td><td>${r.skills.join(', ')}</td><td>${r.langs.join(', ')}</td><td>${r.owns.join(', ')||'–'}</td><td>${r.active?`<button class="btn ghost sm" onclick="leave('${r.id}',${!r.away})">${r.away?'🌴 On leave':'Available'}</button>`:'⛔ Deprovisioned'}</td></tr>`).join('')}</table>`;
+ $('depSel').innerHTML=ST.reps.filter(r=>r.active).map(r=>`<option value="${r.id}">${r.name} (${r.terr})</option>`).join('');
+ renderBuf();renderAudit()}
+async function mv(i,d){const R=ST.rules.slice(),j=i+d;if(j<0||j>=R.length)return;[R[i],R[j]]=[R[j],R[i]];await api('/api/rules',{method:'PUT',body:{rules:R}});toast('Rule order saved');renderRules()}
+async function tog(i){const R=ST.rules.map((r,k)=>k==i?{...r,on:!r.on}:r);await api('/api/rules',{method:'PUT',body:{rules:R}});renderRules()}
+async function leave(id,away){await api('/api/reps/'+id,{method:'PATCH',body:{away}});renderRules()}
+function renderBuf(){$('bufNudge').innerHTML=ST.buffer?`<div class="note ok" style="margin:0">✅ <b>10-min buffer on for all reps.</b> New bookings leave time for notes and travel. <a href="#" onclick="setBuf(false);return false">Undo</a></div>`:
+ `<div class="row" style="justify-content:space-between"><div style="flex:1;min-width:220px"><b>💡 Your reps had 23 back-to-back meetings last week</b><br><span class="busy">Buffer time already exists, but it was hidden under Advanced settings in each meeting type. 31 accounts asked for it, and only 5 had found it.</span></div><button class="btn" onclick="setBuf(true)">Add 10-min buffers for everyone</button></div>`}
+async function setBuf(on){await api('/api/buffer',{method:'POST',body:{on}});toast(on?'10-min buffers on for all reps':'Buffers off');renderRules()}
+async function renderAudit(){const A=await api('/api/audit');$('audit').innerHTML=`<table><tr><th>When</th><th>Actor</th><th>Event</th><th>Detail</th></tr>${A.map(a=>`<tr><td>${DateTime.fromISO(a.t).toFormat('d LLL HH:mm')}</td><td>${a.who}</td><td>${a.ev}</td><td>${a.d}</td></tr>`).join('')}</table>`}
+const PRE=[['j.moreno@bluecrest.com',0,'general','English'],['sam.k@gmail.com',0,'general','English'],['it@ferrovia.es',5,'technical','Spanish'],['cfo@northfold.de',6,'billing','German']];
+async function initRoute(){await refresh();$('rLoc').innerHTML=ST.locs.map(l=>`<option>${l[0]}</option>`).join('');
+ $('rGo').onclick=()=>{$('rConfirm').classList.add('hide');renderRoute()};
+ document.querySelectorAll('[data-p]').forEach(a=>a.onclick=async e=>{e.preventDefault();const p=PRE[+a.dataset.p];$('rEmail').value=p[0];$('rLoc').selectedIndex=p[1];$('rTopic').value=p[2];$('rLang').value=p[3];
+  await api('/api/reps/lena',{method:'PATCH',body:{away:a.dataset.p=='3'}});$('rConfirm').classList.add('hide');renderRoute();renderRules()});
+ $('depGo').onclick=async()=>{const id=$('depSel').value;
+  const r=await fetch('/scim/v2/Users/'+id,{method:'PATCH',headers:{'Content-Type':'application/scim+json',Authorization:'Bearer demo-okta-token'},body:JSON.stringify({schemas:['urn:ietf:params:scim:api:messages:2.0:PatchOp'],Operations:[{op:'replace',value:{active:false}}]})}).then(x=>x.json());
+  const h=r['urn:kestrel:handover']||{};
+  $('depOut').innerHTML=`<div class="note ok">Okta sent <code>PATCH /scim/v2/Users/${id} {active:false}</code>. Handled with no ticket to IT or ops:<br>• ${h.rep} removed from routing<br>• ${h.accounts&&h.accounts.length?h.accounts.join(', ')+' now owned by '+h.peer:'No named accounts to move'}<br>• ${h.meetings} upcoming meetings moved to ${h.peer}, with one email to each invitee<br>• Every step is in the audit log ↓</div>`;toast('SCIM: user deprovisioned and work handed over');renderRules()};
+ $('auditCsv').onclick=()=>{location.href='/api/audit.csv'};
+ $('resetDemo')&&($('resetDemo').onclick=async()=>{await api('/api/reset',{method:'POST'});location.reload()});
+ renderRules()}
+
+initBook();tt();initRoute().catch(()=>{});
+</script>
+</body>
+</html>

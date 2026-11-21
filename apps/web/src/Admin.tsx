@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { DateTime } from 'luxon'
 import { ArrowDown, ArrowUp, Download, KeyRound, Lightbulb, ShieldCheck, UserX } from 'lucide-react'
-import { api, city, type Audit, type State, type SimRow } from '@/lib/api'
+import { api, apiUrl, city, type Audit, type State, type SimRow } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -100,7 +100,7 @@ export default function Admin({ st, reload }: { st: State; reload: () => Promise
         </CardContent></Card>
 
       <Card id="audit" className="scroll-mt-6"><CardHeader className="flex-row items-center justify-between space-y-0"><div><CardTitle>Audit log</CardTitle><CardDescription>For compliance reviews</CardDescription></div>
-        <Button variant="outline" size="sm" onClick={() => { location.href = '/api/audit.csv' }}><Download />Export CSV</Button></CardHeader>
+        <Button variant="outline" size="sm" onClick={() => { location.href = apiUrl('/api/audit.csv') }}><Download />Export CSV</Button></CardHeader>
         <CardContent className="max-h-[300px] overflow-y-auto"><ol className="divide-y divide-border">{audit.map((a, i) => <li key={a.t + i} className={cn('flex gap-3 py-2 text-[13px]', (!seen.current || !seen.current.has(a.t + a.ev + (audit.length - i))) && 'animate-fade-up')}>
           <span className="w-[92px] shrink-0 text-[11px] tabular-nums text-muted-foreground">{DateTime.fromISO(a.t).toFormat('d LLL HH:mm')}</span>
           <div><p className="font-medium">{a.ev} <span className="font-normal text-muted-foreground">· {a.who}</span></p><p className="text-muted-foreground">{a.d}</p></div></li>)}</ol></CardContent></Card>

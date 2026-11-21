@@ -142,12 +142,12 @@ const scimUser = (r) => ({ schemas: ['urn:ietf:params:scim:schemas:core:2.0:User
 
 // ---------- http ----------
 function send(res, code, body, type = 'application/json') {
-  res.writeHead(code, { 'Content-Type': type, 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,OPTIONS' });
+  res.writeHead(code, { 'Content-Type': type, 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS' });
   res.end(type === 'application/json' ? JSON.stringify(body) : body);
 }
 const readBody = (req) => new Promise((ok) => { let s = ''; req.on('data', (c) => (s += c)); req.on('end', () => { try { ok(s ? JSON.parse(s) : {}); } catch { ok({}); } }); });
 
-const server = http.createServer(async (req, res) => {
+async function handler(req, res) {
   const url = new URL(req.url, 'http://x');
   const p = url.pathname, m = req.method;
   if (m === 'OPTIONS') return send(res, 204, '');
@@ -228,5 +228,6 @@ const server = http.createServer(async (req, res) => {
     }
     send(res, 404, { error: 'not found' });
   } catch (e) { console.error(e); send(res, 500, { error: e.message }); }
-});
-server.listen(PORT, () => console.log(`Kestrel Smart Routing on http://localhost:${PORT}`));
+}
+module.exports = handler;
+if (require.main === module) http.createServer(handler).listen(PORT, () => console.log(`Kestrel Smart Routing on http://localhost:${PORT}`));

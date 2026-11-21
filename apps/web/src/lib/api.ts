@@ -1,7 +1,9 @@
 import type { Booking, Rep, Rule, Step, Invitee, State, RouteRes, SimRow, Audit } from '@kestrel/shared'
 export type { Booking, Rep, Rule, Step, Invitee, State, RouteRes, SimRow, Audit }
+const BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? ''
+export const apiUrl = (p: string) => BASE + p
 async function call<T>(p: string, method = 'GET', body?: unknown, headers: Record<string, string> = {}): Promise<T> {
-  const r = await fetch(p, { method, headers: { 'Content-Type': 'application/json', ...headers }, body: body ? JSON.stringify(body) : undefined })
+  const r = await fetch(BASE + p, { method, headers: { 'Content-Type': 'application/json', ...headers }, body: body ? JSON.stringify(body) : undefined })
   const j = await r.json(); if (!r.ok) throw new Error(j.error || String(r.status)); return j
 }
 export const api = {
