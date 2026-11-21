@@ -12,7 +12,7 @@ export default {
       success: { DEFAULT: 'hsl(var(--success))', bg: 'hsl(var(--success-bg))' }, warning: { DEFAULT: 'hsl(var(--warning))', bg: 'hsl(var(--warning-bg))' },
       card: { DEFAULT: 'hsl(var(--card))', foreground: 'hsl(var(--card-foreground))' } },
     borderRadius: { lg: 'var(--radius)', md: 'calc(var(--radius) - 2px)', sm: 'calc(var(--radius) - 4px)' },
-    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+    fontFamily: { sans: ['Geist', 'system-ui', 'sans-serif'], serif: ['"Instrument Serif"', 'Georgia', 'serif'], mono: ['"Geist Mono"', 'ui-monospace', 'monospace'] },
     keyframes: { 'fade-up': { from: { opacity: 0, transform: 'translateY(6px)' }, to: { opacity: 1, transform: 'none' } }, shimmer: { '0%': { backgroundPosition: '100% 50%' }, '100%': { backgroundPosition: '0 50%' } } },
     animation: { 'fade-up': 'fade-up .24s cubic-bezier(.2,.8,.2,1) both', shimmer: 'shimmer 1.2s ease infinite' },
   } },

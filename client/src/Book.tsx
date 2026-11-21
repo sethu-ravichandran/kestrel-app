@@ -48,7 +48,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
   }
   const rep = res?.rep
 
-  return <div className="grid gap-4 md:grid-cols-[320px_1fr] items-start">
+  return <div className="grid items-start gap-10 md:grid-cols-[300px_1fr]">
     <Card>
       <CardHeader><CardTitle>Talk to Halden Group</CardTitle><CardDescription>Tell us a little about you and we'll find the right person.</CardDescription></CardHeader>
       <CardContent className="space-y-4">
@@ -57,48 +57,48 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
         <div className="space-y-2"><Label htmlFor="to">What's this about?</Label><NativeSelect id="to" value={f.topic} onChange={e => setF({ ...f, topic: e.target.value })}><option value="general">General / pricing</option><option value="technical">Technical / integration</option><option value="billing">Billing</option></NativeSelect></div>
         <div className="space-y-2"><Label htmlFor="la">Preferred language</Label><NativeSelect id="la" value={f.lang} onChange={e => setF({ ...f, lang: e.target.value })}>{['English', 'Spanish', 'French', 'German'].map(x => <option key={x}>{x}</option>)}</NativeSelect></div>
         <Button className="w-full" onClick={() => run()}>Find my person <ArrowRight /></Button>
-        <div className="border-t pt-4"><p className="mb-2 text-xs font-medium text-muted-foreground">Try a scenario</p>
-          <div className="flex flex-wrap gap-1.5">{PRESETS.map(p => <Button key={p.label} variant="outline" size="sm" onClick={() => preset(p)}>{p.label}</Button>)}</div></div>
+        <div className="border-t border-foreground/15 pt-4"><p className="mb-3 font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted-foreground">Try a scenario</p>
+          <ol className="divide-y divide-foreground/10">{PRESETS.map((p, i) => <li key={p.label}><button onClick={() => preset(p)} className="group flex w-full items-baseline gap-3 py-2 text-left text-[13px] transition-colors hover:text-accent"><span className="font-mono text-[10.5px] text-muted-foreground">0{i + 1}</span>{p.label}<span className="ml-auto opacity-0 transition-opacity group-hover:opacity-100">→</span></button></li>)}</ol></div>
       </CardContent>
     </Card>
 
     <div className="space-y-4">
       <Card className="min-h-[460px]">
-        <CardContent className="p-5">
+        <CardContent className="pt-5">
           {loading || !res ? <div className="space-y-4" aria-busy="true">
             <div className="flex items-center gap-3"><Skeleton className="size-11 rounded-full" /><div className="flex-1 space-y-2"><Skeleton className="h-5 w-1/2" /><Skeleton className="h-3.5 w-3/4" /></div></div>
             <Skeleton className="h-36" /><div className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-2">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[62px]" />)}</div>
           </div> : !rep ? <Alert variant="destructive">No one is available right now.</Alert> : <div className="animate-fade-up">
             <div className="flex items-center gap-3">
-              <div className="grid size-11 shrink-0 place-items-center rounded-full bg-accent font-semibold text-primary animate-in zoom-in-90 duration-300">{initials(rep.name)}</div>
-              <div><h2 className="text-lg font-semibold tracking-tight">You'll meet {rep.name}</h2>
-                <p className="text-xs text-muted-foreground">{rep.terr} · {city(rep.tz)} · {rep.skills.join(', ')} · speaks {rep.langs.join(', ')}</p></div>
-              {res.why === 'owner' && <Badge variant="success" className="ml-auto">Your account owner</Badge>}
+              <div className="grid size-12 shrink-0 place-items-center rounded-full bg-accent text-[15px] font-semibold text-white animate-in zoom-in-90 duration-300">{initials(rep.name)}</div>
+              <div><h2 className="text-[26px] font-semibold leading-tight tracking-[-0.03em]">You'll meet {rep.name}</h2>
+                <p className="font-mono text-[11px] text-muted-foreground">{rep.terr} · {city(rep.tz)} · {rep.skills.join(', ')} · speaks {rep.langs.join(', ')}</p></div>
+              {res.why === 'owner' && <span className="ml-auto self-start font-mono text-[10.5px] uppercase tracking-[0.08em] text-accent">Your account owner</span>}
             </div>
-            <div className="mt-4 rounded-lg border bg-zinc-50/60 p-3">
-              <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold"><Sparkles className="size-3.5 text-primary" />Why {first(rep.name)}?</p>
-              <ol className="space-y-1.5">{res.trace.map((s, i) => <li key={i} style={{ animationDelay: `${i * 70}ms` }} className="flex flex-wrap items-center gap-2 text-[13px] animate-fade-up">
-                <ChevronRight className="size-3.5 text-muted-foreground" /><span className="min-w-[230px] flex-1">{s.t}</span>
+            <div className="mt-6">
+              <p className="mb-3 font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted-foreground">Decision log: why {first(rep.name)}</p>
+              <ol className="relative ml-[9px] border-l border-foreground/20">{res.trace.map((s, i) => <li key={i} style={{ animationDelay: `${i * 70}ms` }} className="relative flex flex-wrap items-baseline gap-x-3 gap-y-1 py-1.5 pl-6 text-[13px] animate-fade-up">
+                <span className={cn('absolute -left-[9px] top-[9px] grid size-[17px] place-items-center rounded-full border bg-background font-mono text-[9.5px]', s.s === 'ok' ? 'border-foreground text-foreground' : 'border-foreground/25 text-muted-foreground')}>{i + 1}</span><span className="min-w-[230px] flex-1">{s.t}</span>
                 <Badge variant={s.s === 'ok' ? 'success' : s.s === 'warn' ? 'warning' : 'outline'}>{s.r}</Badge></li>)}</ol>
             </div>
-            <h3 className="mt-5 flex items-center gap-1.5 text-sm font-semibold"><Clock className="size-4" />Pick a time <span className="font-normal text-muted-foreground">: only times inside both your day and {first(rep.name)}'s{st.buffer ? ', with a 10-min buffer' : ''}</span></h3>
+            <div className="mt-8 flex flex-wrap items-baseline justify-between gap-2 border-t border-foreground/15 pt-4"><h3 className="text-[17px] font-semibold tracking-[-0.02em]">Pick a time</h3><span className="font-mono text-[11px] text-muted-foreground">Inside both your day and {first(rep.name)}'s{st.buffer ? ' · 10-min buffer' : ''}</span></div>
             <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-2">
               {res.slots.map((s, i) => { const d = DateTime.fromISO(s); return <button key={s} disabled={!!booking} onClick={() => book(s)} style={{ animationDelay: `${Math.min(i, 8) * 25}ms` }}
-                className={cn('group min-h-[62px] rounded-lg border bg-background px-3 py-2.5 text-left transition-all duration-150 hover:-translate-y-px hover:border-primary hover:shadow-md active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring animate-fade-up disabled:opacity-60', booking === s && 'border-primary ring-2 ring-primary/30')}>
-                <div className="text-sm font-semibold tabular-nums">{d.setZone(inv.tz).toFormat('ccc d LLL · HH:mm')} <span className="text-xs font-normal text-muted-foreground">your time</span></div>
-                <div className="text-xs text-muted-foreground tabular-nums">{d.setZone(rep.tz).toFormat('HH:mm')} for {first(rep.name)} ({city(rep.tz)})</div></button> })}
+                className={cn('group min-h-[62px] rounded-xl border border-input bg-white px-3 py-2.5 text-left transition-all duration-150 hover:border-accent hover:bg-accent hover:text-white active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 animate-fade-up disabled:opacity-60', booking === s && 'border-accent bg-accent text-white')}>
+                <div className="font-mono text-[13px] font-medium">{d.setZone(inv.tz).toFormat('ccc d LLL · HH:mm')}</div>
+                <div className="mt-0.5 font-mono text-[11px] text-muted-foreground group-hover:text-white/70">{d.setZone(rep.tz).toFormat('HH:mm')} for {first(rep.name)} ({city(rep.tz)})</div></button> })}
             </div>
             {err && <Alert variant="destructive" className="mt-3">{err}</Alert>}
           </div>}
         </CardContent>
       </Card>
 
-      {done && done.rep && <Card className="border-success/30">
-        <CardHeader><CardTitle className="flex items-center gap-2 text-success"><CalendarCheck className="size-5" />Booked with {done.rep.name}</CardTitle><CardDescription>Booking {done.id} saved on the server.</CardDescription></CardHeader>
+      {done && done.rep && <Card>
+        <CardHeader><CardTitle>Booked with {done.rep.name}<span className="text-accent">.</span></CardTitle><CardDescription className="font-mono text-[11px]">{done.id} · saved to server · confirmation sent</CardDescription></CardHeader>
         <CardContent className="space-y-3">
-          <div className="grid grid-cols-3 gap-2">{[[inv.tz, 'You'], [done.rep.tz, done.rep.name.split(' ')[0]], ['UTC', 'Stored (UTC)']].map(([z, l]) => { const d = DateTime.fromISO(done.start).setZone(z); return <div key={l} className="rounded-lg bg-muted p-3 animate-in zoom-in-95"><p className="text-xs text-muted-foreground">{l} · {z === 'UTC' ? 'UTC' : city(z)}</p><p className="text-xl font-semibold tabular-nums tracking-tight">{d.toFormat('HH:mm')}</p><p className="text-xs text-muted-foreground">{d.toFormat('ccc d LLL')}</p></div> })}</div>
+          <div className="grid grid-cols-3 divide-x divide-foreground/15 border-y border-foreground/15">{[[inv.tz, 'You'], [done.rep.tz, done.rep.name.split(' ')[0]], ['UTC', 'Stored (UTC)']].map(([z, l]) => { const d = DateTime.fromISO(done.start).setZone(z); return <div key={l} className="px-4 py-3 animate-fade-up"><p className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">{l} · {z === 'UTC' ? 'UTC' : city(z)}</p><p className="font-mono text-[28px] font-medium tracking-tight">{d.toFormat('HH:mm')}</p><p className="text-xs text-muted-foreground">{d.toFormat('ccc d LLL')}</p></div> })}</div>
           {done.buffer && <Alert variant="success">10-min buffer blocked after this meeting on {first(done.rep.name)}'s calendar.</Alert>}
-          <div className="rounded-lg border bg-zinc-50/60 p-4 text-[13px] leading-relaxed">
+          <div className="border-l-2 border-foreground bg-white/60 p-4 text-[13px] leading-relaxed">
             <p><b>Subject:</b> Halden Group · {DateTime.fromISO(done.start).setZone(inv.tz).toFormat('ccc d LLL, HH:mm')} your time ({city(inv.tz)})</p>
             <p className="mt-2">Hi, you're meeting <b>{done.rep.name}</b>{done.why === 'owner' ? ', your account manager' : `, our ${inv.topic === 'technical' ? 'solutions engineer' : 'specialist'} for ${inv.terr}`}.</p>
             <p className="flex items-center gap-1.5"><Globe2 className="size-3.5" /><b>{DateTime.fromISO(done.start).setZone(inv.tz).toFormat('cccc d LLLL, HH:mm')} {city(inv.tz)} time</b> = {DateTime.fromISO(done.start).setZone(done.rep.tz).toFormat('HH:mm')} {city(done.rep.tz)}</p>

@@ -15,22 +15,22 @@ export default function App() {
   const reload = async () => setSt(await api.state())
   useEffect(() => { reload() }, [])
   return <Toaster>
-    <header className="sticky top-0 z-30 border-b bg-white/80 backdrop-blur">
+    <header className="sky sticky top-0 z-30 border-b border-white/10">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
-        <div className="flex items-center gap-2 font-semibold tracking-tight"><span className="grid size-7 place-items-center rounded-md bg-zinc-950 text-white"><CalendarClock className="size-4" /></span>Kestrel</div>
-        <span className="hidden rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-foreground sm:inline">Smart Routing</span>
+        <div className="flex items-baseline gap-2"><span className="text-[19px] font-semibold leading-none tracking-[-0.03em]">kestrel</span><span className="size-1.5 translate-y-[-3px] rounded-full bg-accent" /></div>
+        <span className="hidden font-mono text-[10.5px] uppercase tracking-[0.1em] text-white/50 sm:inline">Smart Routing · prototype</span>
         <div className="ml-auto flex items-center gap-2">
-          <Tabs value={tab} onChange={setTab} items={[{ v: 'book', label: <><CalendarClock />Book</> }, { v: 'admin', label: <><Settings2 />Admin</> }]} />
-          <Button variant="ghost" size="icon" aria-label="Reset demo" title="Reset demo" onClick={async () => { await api.reset(); await reload(); setK(k + 1) }}><RotateCcw /></Button>
+          <div className="[&_[role=tab]]:text-white/55 [&_[role=tab][aria-selected=true]]:text-white [&_[role=tab]:hover]:text-white"><Tabs value={tab} onChange={setTab} items={[{ v: 'book', label: <><CalendarClock />Book</> }, { v: 'admin', label: <><Settings2 />Admin</> }]} /></div>
+          <Button variant="ghost" size="icon" className="text-white/60 hover:bg-white/10 hover:text-white" aria-label="Reset demo" title="Reset demo" onClick={async () => { await api.reset(); await reload(); setK(k + 1) }}><RotateCcw /></Button>
         </div>
       </div>
     </header>
-    <main className="mx-auto max-w-6xl px-4 py-6">
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
-        <div><h1 className="text-xl font-semibold tracking-tight">{tab === 'book' ? 'Book a meeting' : 'Routing admin · Halden Group'}</h1>
-          <p className="text-sm text-muted-foreground">{tab === 'book' ? 'Customer view: every booking goes to the right rep, and you can see why.' : 'Ops view: rules, team, identity and audit.'}</p></div>
-        <a href="/tz.html" className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"><Clock4 className="size-3.5" />Time-zone lab (daylight saving demos)</a>
-      </div>
+    <section className="sky -mt-px"><div className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-4 px-4 pb-12 pt-12">
+        <div><p className="mb-3 font-mono text-[10.5px] uppercase tracking-[0.14em] text-white/55">{tab === 'book' ? 'Halden Group · booking page' : 'Halden Group · workspace settings'}</p><h1 className="text-[40px] font-semibold leading-[1.05] tracking-[-0.035em] sm:text-[48px]">{tab === 'book' ? <>Meet the right person.</> : <>Who gets which meeting.</>}</h1>
+          <p className="mt-3 max-w-[52ch] text-white/65">{tab === 'book' ? 'Each booking is routed by account owner, territory, skill and language, and the page shows you why.' : 'Rules, team, identity and audit, all in one place for the ops team.'}</p></div>
+        <a href="/tz.html" className="font-mono text-[11px] uppercase tracking-[0.08em] text-white/60 underline decoration-white/25 underline-offset-4 transition-colors hover:text-white">Time-zone lab →</a>
+      </div></section>
+    <main className="mx-auto max-w-6xl px-4 pb-24 pt-10">
       {!st ? <div className="grid gap-4 md:grid-cols-[320px_1fr]"><Skeleton className="h-[460px]" /><Skeleton className="h-[460px]" /></div>
         : <div key={tab + k} className="animate-fade-up">{tab === 'book' ? <Book st={st} reload={reload} /> : <Admin st={st} reload={reload} />}</div>}
     </main>
