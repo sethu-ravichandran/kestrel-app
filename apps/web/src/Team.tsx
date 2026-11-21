@@ -28,7 +28,7 @@ export function TerritoryCards({ st, rows }: { st: State; rows: Booking[] }) {
 export function WeekGrid({ st, rows, viewTz = 'America/New_York' }: { st: State; rows: Booking[]; viewTz?: string }) {
   const mon = DateTime.fromISO(st.now).setZone(viewTz).startOf('week')
   const days = Array.from({ length: 7 }, (_, i) => mon.plus({ days: i }))
-  const H0 = 4, H1 = 24, PX = 30 // px per hour
+  const H0 = 2, H1 = 24, PX = 28 // px per hour
   const live = rows.filter(b => b.status === 'confirmed')
   const hours = Array.from({ length: (H1 - H0) / 2 }, (_, i) => H0 + i * 2)
   return <div className="overflow-x-auto">
@@ -47,6 +47,6 @@ export function WeekGrid({ st, rows, viewTz = 'America/New_York' }: { st: State;
         </div>)}
       </div>
     </div>
-    <p className="mt-3 text-xs text-muted-foreground">Times shown in New York time, 04:00–24:00. Each colour is one rep.</p>
+    <p className="mt-3 text-xs text-muted-foreground">Times shown in New York time, 02:00–24:00. Each colour is one rep.</p>
   </div>
 }

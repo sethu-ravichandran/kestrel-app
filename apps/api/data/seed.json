@@ -75,7 +75,7 @@
       "owns": [
         "northfold.de"
       ],
-      "away": false,
+      "away": true,
       "active": true
     },
     {
@@ -165,7 +165,7 @@
       "id": "BK-1",
       "repId": "ana",
       "who": "ops@bluecrest.com",
-      "start": "2026-11-25T18:00:00Z",
+      "start": "2026-11-23T18:00:00Z",
       "tz": "America/Los_Angeles",
       "topic": "general",
       "why": "owner",
@@ -175,7 +175,7 @@
       "id": "BK-2",
       "repId": "ana",
       "who": "cto@bluecrest.com",
-      "start": "2026-11-27T17:00:00Z",
+      "start": "2026-11-24T17:00:00Z",
       "tz": "America/Los_Angeles",
       "topic": "technical",
       "why": "owner",
@@ -183,40 +183,40 @@
     },
     {
       "id": "BK-3",
-      "repId": "lena",
-      "who": "cfo@northfold.de",
-      "start": "2026-11-24T10:00:00Z",
-      "tz": "Europe/Berlin",
+      "repId": "ana",
+      "who": "finance@bluecrest.com",
+      "start": "2026-11-25T22:00:00Z",
+      "tz": "America/Los_Angeles",
       "topic": "billing",
       "why": "owner",
       "status": "confirmed"
     },
     {
       "id": "BK-4",
-      "repId": "javi",
-      "who": "it@ferrovia.es",
-      "start": "2026-11-24T14:00:00Z",
-      "tz": "Europe/Madrid",
-      "topic": "technical",
+      "repId": "ana",
+      "who": "m.lee@gmail.com",
+      "start": "2026-11-26T19:00:00Z",
+      "tz": "America/Los_Angeles",
+      "topic": "general",
       "why": "rules",
       "status": "confirmed"
     },
     {
       "id": "BK-5",
-      "repId": "mei",
-      "who": "ops@harbourline.sg",
-      "start": "2026-11-25T02:00:00Z",
-      "tz": "Asia/Singapore",
-      "topic": "general",
-      "why": "owner",
+      "repId": "ana",
+      "who": "hello@redwoodlabs.io",
+      "start": "2026-11-27T23:00:00Z",
+      "tz": "America/Los_Angeles",
+      "topic": "billing",
+      "why": "rules",
       "status": "confirmed"
     },
     {
       "id": "BK-6",
-      "repId": "kofi",
-      "who": "dev@acme.ca",
-      "start": "2026-11-26T15:00:00Z",
-      "tz": "America/Toronto",
+      "repId": "sam",
+      "who": "ann@sfgrowth.com",
+      "start": "2026-11-23T21:00:00Z",
+      "tz": "America/Los_Angeles",
       "topic": "technical",
       "why": "rules",
       "status": "confirmed"
@@ -224,8 +224,8 @@
     {
       "id": "BK-7",
       "repId": "sam",
-      "who": "ann@sfgrowth.com",
-      "start": "2026-11-30T19:00:00Z",
+      "who": "dev@quayside.app",
+      "start": "2026-11-24T23:00:00Z",
       "tz": "America/Los_Angeles",
       "topic": "technical",
       "why": "rules",
@@ -233,48 +233,200 @@
     },
     {
       "id": "BK-8",
+      "repId": "sam",
+      "who": "eng@northbeam.ai",
+      "start": "2026-11-26T17:00:00Z",
+      "tz": "America/Los_Angeles",
+      "topic": "technical",
+      "why": "rules",
+      "status": "confirmed"
+    },
+    {
+      "id": "BK-9",
+      "repId": "sam",
+      "who": "it@cascadia.org",
+      "start": "2026-11-27T18:00:00Z",
+      "tz": "America/Los_Angeles",
+      "topic": "technical",
+      "why": "rules",
+      "status": "cancelled"
+    },
+    {
+      "id": "BK-10",
       "repId": "ben",
       "who": "k.ito@pinecove.io",
       "start": "2026-11-23T16:00:00Z",
       "tz": "America/New_York",
       "topic": "general",
       "why": "owner",
+      "status": "confirmed"
+    },
+    {
+      "id": "BK-11",
+      "repId": "ben",
+      "who": "ops@pinecove.io",
+      "start": "2026-11-25T15:00:00Z",
+      "tz": "America/New_York",
+      "topic": "general",
+      "why": "owner",
+      "status": "confirmed"
+    },
+    {
+      "id": "BK-12",
+      "repId": "ben",
+      "who": "sales@hudsonyards.co",
+      "start": "2026-11-26T19:00:00Z",
+      "tz": "America/New_York",
+      "topic": "general",
+      "why": "rules",
       "status": "cancelled"
+    },
+    {
+      "id": "BK-13",
+      "repId": "kofi",
+      "who": "dev@acme.ca",
+      "start": "2026-11-24T15:00:00Z",
+      "tz": "America/Toronto",
+      "topic": "technical",
+      "why": "rules",
+      "status": "confirmed"
+    },
+    {
+      "id": "BK-14",
+      "repId": "kofi",
+      "who": "platform@lakeshore.ca",
+      "start": "2026-11-25T20:00:00Z",
+      "tz": "America/Toronto",
+      "topic": "technical",
+      "why": "rules",
+      "status": "confirmed"
+    },
+    {
+      "id": "BK-15",
+      "repId": "kofi",
+      "who": "eng@brooklynbits.com",
+      "start": "2026-11-27T16:00:00Z",
+      "tz": "America/New_York",
+      "topic": "technical",
+      "why": "rules",
+      "status": "confirmed"
+    },
+    {
+      "id": "BK-16",
+      "repId": "lena",
+      "who": "cfo@northfold.de",
+      "start": "2026-11-23T14:00:00Z",
+      "tz": "Europe/Berlin",
+      "topic": "billing",
+      "why": "owner",
+      "status": "confirmed"
+    },
+    {
+      "id": "BK-17",
+      "repId": "javi",
+      "who": "it@ferrovia.es",
+      "start": "2026-11-24T09:00:00Z",
+      "tz": "Europe/Madrid",
+      "topic": "technical",
+      "why": "rules",
+      "status": "confirmed"
+    },
+    {
+      "id": "BK-18",
+      "repId": "javi",
+      "who": "ops@lumiere.fr",
+      "start": "2026-11-25T11:00:00Z",
+      "tz": "Europe/London",
+      "topic": "technical",
+      "why": "rules",
+      "status": "confirmed"
+    },
+    {
+      "id": "BK-19",
+      "repId": "javi",
+      "who": "cto@tagus.pt",
+      "start": "2026-11-27T08:00:00Z",
+      "tz": "Europe/London",
+      "topic": "general",
+      "why": "rules",
+      "status": "confirmed"
+    },
+    {
+      "id": "BK-20",
+      "repId": "mei",
+      "who": "ops@harbourline.sg",
+      "start": "2026-11-24T02:00:00Z",
+      "tz": "Asia/Singapore",
+      "topic": "general",
+      "why": "owner",
+      "status": "confirmed"
+    },
+    {
+      "id": "BK-21",
+      "repId": "mei",
+      "who": "it@harbourline.sg",
+      "start": "2026-11-26T06:00:00Z",
+      "tz": "Asia/Singapore",
+      "topic": "technical",
+      "why": "owner",
+      "status": "confirmed"
+    },
+    {
+      "id": "BK-22",
+      "repId": "mei",
+      "who": "p.ng@tallow.com.au",
+      "start": "2026-11-27T03:00:00Z",
+      "tz": "Australia/Sydney",
+      "topic": "general",
+      "why": "rules",
+      "status": "confirmed"
     }
   ],
   "audit": [
     {
-      "daysAgo": 0.1,
+      "daysAgo": 0.05,
       "who": "booking-page",
       "ev": "Meeting booked",
       "d": "it@ferrovia.es \u2192 Javier Soto (technical, Spanish)"
     },
     {
+      "daysAgo": 0.2,
+      "who": "ops@halden",
+      "ev": "Rep marked on leave",
+      "d": "Lena Vogel (until 4 Dec)"
+    },
+    {
       "daysAgo": 0.3,
+      "who": "kestrel",
+      "ev": "Owner fallback used",
+      "d": "cfo@northfold.de: owner on leave, routed to EMEA pool"
+    },
+    {
+      "daysAgo": 0.5,
       "who": "booking-page",
       "ev": "Meeting booked",
       "d": "ops@harbourline.sg \u2192 Mei Tan (account owner)"
     },
     {
-      "daysAgo": 0.6,
+      "daysAgo": 1.1,
       "who": "ops@halden",
       "ev": "Meeting cancelled",
-      "d": "BK-8 \u00b7 k.ito@pinecove.io with Ben Carter; slot released"
+      "d": "k.ito@pinecove.io with Ben Carter; slot released"
     },
     {
-      "daysAgo": 1,
-      "who": "ops@halden",
-      "ev": "Routing rule changed",
-      "d": "\"Territory\" moved above \"Topic\""
-    },
-    {
-      "daysAgo": 1.2,
+      "daysAgo": 1.3,
       "who": "booking-page",
       "ev": "Meeting booked",
       "d": "dev@acme.ca \u2192 Kofi Mensah (technical, NA-East)"
     },
     {
-      "daysAgo": 2,
+      "daysAgo": 1.6,
+      "who": "ops@halden",
+      "ev": "Routing rule changed",
+      "d": "\"Territory\" moved above \"Topic\""
+    },
+    {
+      "daysAgo": 2.0,
       "who": "okta-scim",
       "ev": "User provisioned",
       "d": "Sam Patel added to NA-West"
@@ -286,43 +438,127 @@
       "d": "Sam Patel: technical, general"
     },
     {
-      "daysAgo": 3,
-      "who": "ops@halden",
-      "ev": "Rep marked on leave",
-      "d": "Lena Vogel (until 4 Dec)"
+      "daysAgo": 2.4,
+      "who": "booking-page",
+      "ev": "Meeting booked",
+      "d": "ann@sfgrowth.com \u2192 Sam Patel (technical, NA-West)"
     },
     {
-      "daysAgo": 3.4,
+      "daysAgo": 3.2,
+      "who": "booking-page",
+      "ev": "Meeting booked",
+      "d": "ops@bluecrest.com \u2192 Ana Ruiz (account owner)"
+    },
+    {
+      "daysAgo": 3.5,
+      "who": "ops@halden",
+      "ev": "Buffer turned on",
+      "d": "10 min after every meeting \u00b7 NA-West"
+    },
+    {
+      "daysAgo": 4.1,
       "who": "kestrel",
       "ev": "Owner fallback used",
-      "d": "cfo@northfold.de: owner on leave, routed to EMEA pool"
+      "d": "ops@pinecove.io: Ben Carter at capacity, routed to Kofi Mensah"
     },
     {
-      "daysAgo": 5,
+      "daysAgo": 4.6,
+      "who": "booking-page",
+      "ev": "Meeting booked",
+      "d": "p.ng@tallow.com.au \u2192 Mei Tan (APAC)"
+    },
+    {
+      "daysAgo": 5.0,
       "who": "ops@halden",
       "ev": "Routing rule added",
       "d": "Language \u2192 reps who speak it (soft rule)"
     },
     {
-      "daysAgo": 7,
+      "daysAgo": 5.3,
+      "who": "booking-page",
+      "ev": "Meeting booked",
+      "d": "ops@lumiere.fr \u2192 Javier Soto (French)"
+    },
+    {
+      "daysAgo": 6.2,
+      "who": "ops@halden",
+      "ev": "Meeting cancelled",
+      "d": "sales@hudsonyards.co with Ben Carter; slot released"
+    },
+    {
+      "daysAgo": 7.0,
       "who": "okta-scim",
       "ev": "User deprovisioned",
       "d": "Priya Shah deactivated in Okta"
     },
     {
-      "daysAgo": 7,
+      "daysAgo": 7.0,
       "who": "kestrel",
       "ev": "Accounts reassigned",
       "d": "oakmere.com, tidewell.io \u2192 Ana Ruiz"
     },
     {
-      "daysAgo": 7,
+      "daysAgo": 7.0,
       "who": "kestrel",
       "ev": "Meetings reassigned",
       "d": "3 upcoming meetings \u2192 Ana Ruiz; invitees notified"
     },
     {
-      "daysAgo": 14,
+      "daysAgo": 7.4,
+      "who": "booking-page",
+      "ev": "Meeting booked",
+      "d": "cto@bluecrest.com \u2192 Ana Ruiz (account owner)"
+    },
+    {
+      "daysAgo": 8.2,
+      "who": "ops@halden",
+      "ev": "Skills updated",
+      "d": "Javier Soto: technical, general"
+    },
+    {
+      "daysAgo": 8.5,
+      "who": "booking-page",
+      "ev": "Meeting booked",
+      "d": "eng@northbeam.ai \u2192 Sam Patel (technical)"
+    },
+    {
+      "daysAgo": 9.3,
+      "who": "okta-scim",
+      "ev": "User provisioned",
+      "d": "Javier Soto added to EMEA"
+    },
+    {
+      "daysAgo": 10.1,
+      "who": "booking-page",
+      "ev": "Meeting booked",
+      "d": "platform@lakeshore.ca \u2192 Kofi Mensah (technical)"
+    },
+    {
+      "daysAgo": 10.6,
+      "who": "ops@halden",
+      "ev": "Rep back from leave",
+      "d": "Ben Carter"
+    },
+    {
+      "daysAgo": 11.2,
+      "who": "kestrel",
+      "ev": "Owner fallback used",
+      "d": "it@harbourline.sg: Mei Tan busy, routed within APAC"
+    },
+    {
+      "daysAgo": 12.0,
+      "who": "booking-page",
+      "ev": "Meeting booked",
+      "d": "hello@redwoodlabs.io \u2192 Ana Ruiz (billing)"
+    },
+    {
+      "daysAgo": 12.4,
+      "who": "ops@halden",
+      "ev": "Territory updated",
+      "d": "Kofi Mensah: NA-East"
+    },
+    {
+      "daysAgo": 13.0,
       "who": "maya@halden",
       "ev": "Smart routing enabled",
       "d": "Workspace switched from round robin to rules"
