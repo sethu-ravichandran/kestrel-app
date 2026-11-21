@@ -2,7 +2,6 @@
   "functions": { "api/index.js": { "includeFiles": "data/**" } },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api?__path=api/:path*" },
-    { "source": "/scim/:path*", "destination": "/api?__path=scim/:path*" },
-    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+    { "source": "/scim/:path*", "destination": "/api?__path=scim/:path*" }
   ]
 }
