@@ -9,43 +9,9 @@ const PORT = process.env.PORT || 5178;
 const SCIM_TOKEN = process.env.SCIM_TOKEN || 'demo-okta-token';
 const DEMO_NOW = DateTime.fromISO('2026-11-23T09:00', { zone: 'Europe/Berlin' });
 
-// ---------- seed data (state lives in memory; POST /api/reset restores it) ----------
-function seed() {
-  return {
-    rrPtr: 0,
-    buffer: false,
-    reps: [
-      { id: 'ana', name: 'Ana Ruiz', email: 'ana@halden.com', terr: 'NA-West', tz: 'America/Los_Angeles', skills: ['general', 'billing'], langs: ['English', 'Spanish'], owns: ['bluecrest.com'], away: false, active: true },
-      { id: 'ben', name: 'Ben Carter', email: 'ben@halden.com', terr: 'NA-East', tz: 'America/New_York', skills: ['general'], langs: ['English'], owns: ['pinecove.io'], away: false, active: true },
-      { id: 'kofi', name: 'Kofi Mensah', email: 'kofi@halden.com', terr: 'NA-East', tz: 'America/New_York', skills: ['technical', 'general'], langs: ['English', 'French'], owns: [], away: false, active: true },
-      { id: 'lena', name: 'Lena Vogel', email: 'lena@halden.com', terr: 'EMEA', tz: 'Europe/Berlin', skills: ['general', 'billing'], langs: ['English', 'German'], owns: ['northfold.de'], away: false, active: true },
-      { id: 'javi', name: 'Javier Soto', email: 'javier@halden.com', terr: 'EMEA', tz: 'Europe/Madrid', skills: ['technical', 'general'], langs: ['English', 'Spanish', 'French'], owns: [], away: false, active: true },
-      { id: 'mei', name: 'Mei Tan', email: 'mei@halden.com', terr: 'APAC', tz: 'Asia/Singapore', skills: ['general', 'technical'], langs: ['English'], owns: ['harbourline.sg'], away: false, active: true },
-      { id: 'sam', name: 'Sam Patel', email: 'sam@halden.com', terr: 'NA-West', tz: 'America/Los_Angeles', skills: ['technical', 'general'], langs: ['English'], owns: [], away: false, active: true },
-    ],
-    rules: [
-      { k: 'owner', on: true, t: 'Existing customer → their account owner', d: 'Matches the email domain to named accounts' },
-      { k: 'terr', on: true, t: "Territory → reps covering the invitee's region", d: "Also keeps the meeting inside both people's working day" },
-      { k: 'skill', on: true, t: 'Topic → reps with that skill', d: 'Technical calls only go to solution engineers' },
-      { k: 'lang', on: true, t: 'Language → reps who speak it', d: 'Soft rule: dropped if nobody matches' },
-    ],
-    bookings: [
-      { id: 'BK-1', repId: 'ana', who: 'ops@bluecrest.com', start: '2026-11-25T18:00:00Z', tz: 'America/Los_Angeles', topic: 'general', why: 'owner', status: 'confirmed' },
-      { id: 'BK-2', repId: 'ana', who: 'cto@bluecrest.com', start: '2026-11-27T17:00:00Z', tz: 'America/Los_Angeles', topic: 'technical', why: 'owner', status: 'confirmed' },
-      { id: 'BK-3', repId: 'lena', who: 'cfo@northfold.de', start: '2026-11-24T10:00:00Z', tz: 'Europe/Berlin', topic: 'billing', why: 'owner', status: 'confirmed' },
-      { id: 'BK-4', repId: 'javi', who: 'it@ferrovia.es', start: '2026-11-24T14:00:00Z', tz: 'Europe/Madrid', topic: 'technical', why: 'rules', status: 'confirmed' },
-      { id: 'BK-5', repId: 'mei', who: 'ops@harbourline.sg', start: '2026-11-25T02:00:00Z', tz: 'Asia/Singapore', topic: 'general', why: 'owner', status: 'confirmed' },
-      { id: 'BK-6', repId: 'kofi', who: 'dev@acme.ca', start: '2026-11-26T15:00:00Z', tz: 'America/Toronto', topic: 'technical', why: 'rules', status: 'confirmed' },
-      { id: 'BK-7', repId: 'sam', who: 'ann@sfgrowth.com', start: '2026-11-30T19:00:00Z', tz: 'America/Los_Angeles', topic: 'technical', why: 'rules', status: 'confirmed' },
-      { id: 'BK-8', repId: 'ben', who: 'k.ito@pinecove.io', start: '2026-11-23T16:00:00Z', tz: 'America/New_York', topic: 'general', why: 'owner', status: 'cancelled' },
-    ],
-    audit: [
-      { t: DateTime.now().minus({ days: 2 }).toISO(), who: 'okta-scim', ev: 'User provisioned', d: 'Sam Patel added to NA-West' },
-      { t: DateTime.now().minus({ days: 1 }).toISO(), who: 'ops@halden', ev: 'Routing rule changed', d: '"Territory" moved above "Topic"' },
-    ],
-  };
-}
-let DB = seed();
+// ---------- storage (see store.js: in-memory now, swappable for Postgres/Redis) ----------
+const store = require('./store').createMemoryStore();
+let DB = store.state;
 
 const LOCS = [
   ['Seattle, US', 'America/Los_Angeles', 'NA-West'], ['San Francisco, US', 'America/Los_Angeles', 'NA-West'],
@@ -202,7 +168,7 @@ async function handler(req, res) {
       res.setHeader('Content-Disposition', 'attachment; filename="kestrel-audit-log.csv"');
       return send(res, 200, csv, 'text/csv');
     }
-    if (p === '/api/reset' && m === 'POST') { DB = seed(); return send(res, 200, { ok: true }); }
+    if (p === '/api/reset' && m === 'POST') { DB = store.reset(); return send(res, 200, { ok: true }); }
 
     // SCIM 2.0 (what Okta calls)
     if (p.startsWith('/scim/v2/')) {
