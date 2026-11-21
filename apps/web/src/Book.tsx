@@ -41,6 +41,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
   const inv: Invitee = { email: f.email, loc: L[0], tz: L[1], terr: L[2], topic: f.topic, lang: f.lang }
   const rep = res?.rep
   const tf = h12 ? 'h:mma' : 'HH:mm'
+  const fmtT = (dt: DateTime) => dt.toFormat(tf).toLowerCase()
 
   const byDay = useMemo(() => { const m: Record<string, string[]> = {}; (res?.slots || []).forEach(s => { const k = DateTime.fromISO(s).setZone(inv.tz).toISODate()!; (m[k] ||= []).push(s) }); return m }, [res, inv.tz])
 
@@ -104,7 +105,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
       <h2 className="mt-4 text-lg font-semibold">This meeting is scheduled</h2>
       <p className="mt-1 text-[13px] text-muted-foreground">We sent a calendar invitation to {inv.email}.</p>
       <dl className="mt-6 divide-y border-y text-left text-[13px]">
-        {[['What', `${TOPIC[inv.topic]} with Halden Group`], ['When', `${s.setZone(inv.tz).toFormat(`cccc d LLLL · ${tf}`)} (${city(inv.tz)} time)`], ['Who', `${rep.name}${res?.why === 'owner' ? ' · your account manager' : ''}`], ['Their time', `${s.setZone(rep.tz).toFormat(tf)} in ${city(rep.tz)}`], ['Where', 'Google Meet']].map(([k, v]) =>
+        {[['What', `${TOPIC[inv.topic]} with Halden Group`], ['When', `${s.setZone(inv.tz).toFormat('cccc d LLLL')} · ${fmtT(s.setZone(inv.tz))} (${city(inv.tz)} time)`], ['Who', `${rep.name}${res?.why === 'owner' ? ' · your account manager' : ''}`], ['Their time', rep.tz === inv.tz ? 'Same time zone as you' : `${fmtT(s.setZone(rep.tz))} in ${city(rep.tz)}`], ['Where', 'Google Meet']].map(([k, v]) =>
           <div key={k} className="grid grid-cols-[90px_1fr] py-2.5"><dt className="font-medium">{k}</dt><dd className="text-muted-foreground">{v}</dd></div>)}
       </dl>
       {done.buffer && <p className="mt-4 text-xs text-muted-foreground">A 10-minute buffer was added after this meeting on {first(rep.name)}'s calendar.</p>}
@@ -130,7 +131,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
               <li className="flex items-center gap-2"><Video className="size-4" />Google Meet</li>
               <li className="flex items-center gap-2"><Globe className="size-4" />{city(inv.tz)} time</li>
             </ul>
-            <button onClick={() => setWhy(!why)} aria-expanded={why} className="-ml-1.5 mt-4 inline-flex h-8 items-center gap-1 rounded-md px-1.5 text-xs font-medium text-blue-700 transition-colors duration-fast hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Info className="size-3.5" />Why {first(rep.name)}?</button>
+            <button onClick={() => setWhy(!why)} aria-expanded={why} className="-ml-1.5 mt-4 inline-flex h-8 items-center gap-1 rounded-md px-1.5 text-xs font-medium text-blue-700 transition-colors duration-fast hover:bg-blue-50 dark:text-primary dark:hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Info className="size-3.5" />Why {first(rep.name)}?</button>
             {why && <ul className="mt-2 space-y-1.5 rounded-lg bg-gray-50 p-3 text-xs animate-in fade-in slide-in-from-top-1 duration-150">
               {res!.trace.filter(s => s.s !== 'mut').map((s, i) => <li key={i} className="flex gap-1.5"><span className={cn('mt-1 size-1.5 shrink-0 rounded-full', s.s === 'ok' ? 'bg-green-600' : 'bg-amber-500')} /><span><span className="text-muted-foreground">{s.t.split('→')[0].trim()}:</span> {s.r}</span></li>)}
             </ul>}
@@ -145,7 +146,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
           <div key={month.toISODate()} className={cn('mt-1 grid grid-cols-7 gap-1', dir > 0 ? 'animate-slide-l' : dir < 0 ? 'animate-slide-r' : '')}>{cells.map(c => { const k = c.toISODate()!, has = !!byDay[k], inM = c.month === month.month, on = k === day
             return <button key={k} disabled={!has || !rep} onClick={() => setDay(k)} aria-pressed={on}
               className={cn('relative aspect-square min-h-9 rounded-md text-[13px] tabular-nums transition-[background-color,color,transform] duration-fast ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 enabled:active:scale-[.94] disabled:cursor-default',
-                !inM && 'invisible', on ? 'bg-[hsl(var(--navy))] font-semibold text-white dark:bg-primary' : has && rep ? 'bg-blue-50 font-semibold text-blue-700 hover:bg-blue-100' : 'text-gray-300')}>
+                !inM && 'invisible', on ? 'bg-[hsl(var(--navy))] font-semibold text-white dark:bg-primary' : has && rep ? 'bg-blue-50 font-semibold text-blue-700 hover:bg-blue-100 dark:bg-primary/15 dark:text-white dark:hover:bg-primary/30' : 'text-gray-300')}>
               {c.day}{has && !on && <span className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-primary" />}</button> })}</div>
         </section>
 
@@ -160,13 +161,13 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
               daySlots.length === 0 ? <p className="text-[13px] text-muted-foreground">No times this day.</p> :
               daySlots.map((s, i) => { const d = DateTime.fromISO(s), on = sel === s
                 return <div key={s} className="flex gap-2 animate-fade-up" style={{ animationDelay: `${i * 30}ms` }}>
-                  <button onClick={() => setSel(on ? null : s)} title={`${d.setZone(rep!.tz).toFormat(tf)} for ${first(rep!.name)} in ${city(rep!.tz)}`}
-                    className={cn('h-10 flex-1 rounded-md border text-[13px] font-semibold tabular-nums transition-[background-color,border-color,color,transform] duration-fast ease-out hover:border-blue-600 hover:text-blue-700 active:scale-[.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1', on && 'bg-[hsl(var(--navy))] dark:bg-primary dark:border-primary text-white border-gray-900 hover:border-gray-900 hover:text-white')}>
-                    {d.setZone(inv.tz).toFormat(tf).toLowerCase()}</button>
+                  <button onClick={() => setSel(on ? null : s)} title={`${fmtT(d.setZone(rep!.tz))} for ${first(rep!.name)} in ${city(rep!.tz)}`}
+                    className={cn('h-10 flex-1 rounded-md border text-[13px] font-semibold tabular-nums transition-[background-color,border-color,color,transform] duration-fast ease-out hover:border-blue-600 hover:text-blue-700 dark:hover:border-primary dark:hover:bg-primary/20 dark:hover:text-white active:scale-[.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1', on && 'bg-[hsl(var(--navy))] dark:bg-primary dark:border-primary text-white border-gray-900 hover:border-gray-900 hover:text-white')}>
+                    {fmtT(d.setZone(inv.tz))}</button>
                   {on && <Button className="h-10 animate-slide-l" disabled={busy} aria-busy={busy} onClick={confirm}>{busy && <span className="size-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />}{busy ? 'Booking…' : 'Confirm'}</Button>}
                 </div> })}
           </div>
-          {sel && rep && <p className="mt-3 text-xs text-muted-foreground animate-fade-up">That's {DateTime.fromISO(sel).setZone(rep.tz).toFormat(tf).toLowerCase()} for {first(rep.name)} in {city(rep.tz)}.</p>}
+          {sel && rep && <p className="mt-3 text-xs text-muted-foreground animate-fade-up">That's {fmtT(DateTime.fromISO(sel).setZone(rep.tz))} for {first(rep.name)} in {city(rep.tz)}.</p>}
           {err && <p className="mt-3 text-xs text-red-600">{err}</p>}
         </section>
       </div>

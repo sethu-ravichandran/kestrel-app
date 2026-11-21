@@ -44,11 +44,16 @@ Round robin hands a meeting to whoever is next in line. Existing customers end u
 
 Light, dark and system themes. Demo scenarios are built into the booking page, and **Reset demo data** restores the seed at any time.
 
-## What I chose not to build
+## What I prioritised, and what I didn't
 
-- **Dark mode as the feature:** it was the loudest ask (46), but those accounts are worth $49K. It's shipped here as polish, not as the bet.
-- **Salesforce custom objects:** 19 "Critical" notes, all relayed by sales about prospects. $0 current ARR.
-- **A new buffer feature:** buffers already existed but were buried in settings (5 of 31 asking accounts had found them). The fix is a one-click suggestion.
+The bet is **smart routing**. The other loud asks were weighed against revenue and the board goal:
+
+| Ask | Signal | Decision |
+|---|---|---|
+| **Smart routing** | 6 of 13 accounts with 200+ seats, $661K ARR; the largest customer is working around it by hand | **The bet.** Built end to end. |
+| **Dark mode** | Loudest ask (46 mentions), but from Starter accounts worth $49K | **Shipped as polish** (Light / Dark / System), not as the sprint's bet. |
+| **Buffer time** | 31 accounts asked; the feature already existed, but only 5 had found it | **No new feature needed.** Shipped a one-click "Add 10-min buffers for everyone" suggestion instead. |
+| **Salesforce custom objects** | 19 "Critical" notes, all relayed by sales about prospects; $0 current ARR | **Not built.** Worth a pipeline conversation, not this sprint. |
 
 ## Run it
 
