@@ -1,7 +1,4 @@
 {
-  "functions": { "api/index.js": { "includeFiles": "data/**" } },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api?__path=api/$1" },
-    { "source": "/scim/(.*)", "destination": "/api?__path=scim/$1" }
-  ]
+  "functions": { "api/**/*.js": { "includeFiles": "data/**" } },
+  "rewrites": [{ "source": "/scim/(.*)", "destination": "/api/scim/$1" }]
 }
