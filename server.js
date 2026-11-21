@@ -151,7 +151,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/route' && m === 'POST') {
       const inv = await readBody(req);
       const r = route(inv);
-      return send(res, 200, { ...r, slots: r.rep ? slots(r.rep, inv.tz) : [] });
+      return send(res, 200, { ...r, slots: r.rep ? slots(r.rep, inv.tz, 60) : [] });
     }
     if (p === '/api/bookings' && m === 'GET') return send(res, 200, DB.bookings);
     if (p === '/api/bookings' && m === 'POST') {

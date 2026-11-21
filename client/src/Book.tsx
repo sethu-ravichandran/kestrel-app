@@ -1,110 +1,162 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { DateTime } from 'luxon'
-import { ArrowRight, CalendarCheck, ChevronRight, Clock, Globe2, Sparkles } from 'lucide-react'
+import { ArrowLeft, CalendarDays, Check, ChevronLeft, ChevronRight, Clock, Globe, Info, Video } from 'lucide-react'
 import { api, city, type Invitee, type RouteRes, type State } from '@/lib/api'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input, Label, NativeSelect, Skeleton } from '@/components/ui/input'
-import { Alert } from '@/components/ui/alert'
 import { useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
 
 const PRESETS = [
-  { label: 'Existing customer', email: 'j.moreno@bluecrest.com', loc: 0, topic: 'general', lang: 'English', away: false },
-  { label: 'New lead, Seattle', email: 'sam.k@gmail.com', loc: 0, topic: 'general', lang: 'English', away: false },
-  { label: 'Technical · Madrid · Spanish', email: 'it@ferrovia.es', loc: 5, topic: 'technical', lang: 'Spanish', away: false },
-  { label: 'Owner on leave', email: 'cfo@northfold.de', loc: 6, topic: 'billing', lang: 'German', away: true },
+  { label: 'Existing customer (Bluecrest)', email: 'j.moreno@bluecrest.com', loc: 0, topic: 'general', lang: 'English', away: false },
+  { label: 'New lead from Seattle', email: 'sam.k@gmail.com', loc: 0, topic: 'general', lang: 'English', away: false },
+  { label: 'Technical call, Madrid, Spanish', email: 'it@ferrovia.es', loc: 5, topic: 'technical', lang: 'Spanish', away: false },
+  { label: 'Account owner on leave', email: 'cfo@northfold.de', loc: 6, topic: 'billing', lang: 'German', away: true },
 ]
+const TOPIC: Record<string, string> = { general: 'Intro & pricing', technical: 'Technical deep-dive', billing: 'Billing question' }
 const initials = (n: string) => n.split(' ').map(x => x[0]).join('')
 const first = (n: string) => n.split(' ')[0]
+const Logo = () => <div className="flex items-center gap-2"><div className="grid size-8 place-items-center rounded-md bg-gray-900 text-[13px] font-bold text-white">H</div><span className="font-semibold">Halden Group</span></div>
 
 export default function Book({ st, reload }: { st: State; reload: () => void }) {
   const toast = useToast()
+  const [stage, setStage] = useState<'intake' | 'pick' | 'done'>('intake')
   const [f, setF] = useState({ email: PRESETS[0].email, loc: 0, topic: 'general', lang: 'English' })
   const [res, setRes] = useState<RouteRes | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [booking, setBooking] = useState<string | null>(null)
-  const [done, setDone] = useState<{ id: string; start: string; rep: RouteRes['rep']; buffer: boolean; why: string } | null>(null)
+  const [why, setWhy] = useState(false)
+  const [day, setDay] = useState<string | null>(null)
+  const [month, setMonth] = useState(DateTime.fromISO(st.now).startOf('month'))
+  const [sel, setSel] = useState<string | null>(null)
+  const [h12, setH12] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [done, setDone] = useState<{ id: string; start: string; buffer: boolean } | null>(null)
   const [err, setErr] = useState('')
+  const [demo, setDemo] = useState(false)
   const L = st.locs[f.loc]
   const inv: Invitee = { email: f.email, loc: L[0], tz: L[1], terr: L[2], topic: f.topic, lang: f.lang }
-
-  async function run(i = inv) {
-    setLoading(true); setDone(null); setErr('')
-    const [r] = await Promise.all([api.route(i), new Promise(ok => setTimeout(ok, 300))])
-    setRes(r as RouteRes); setLoading(false)
-  }
-  useEffect(() => { run() }, []) // eslint-disable-line
-  async function preset(p: typeof PRESETS[number]) {
-    const nf = { email: p.email, loc: p.loc, topic: p.topic, lang: p.lang }; setF(nf)
-    await api.leave('lena', p.away); reload()
-    const L2 = st.locs[p.loc]; run({ email: p.email, loc: L2[0], tz: L2[1], terr: L2[2], topic: p.topic, lang: p.lang })
-  }
-  async function book(s: string) {
-    setBooking(s); setErr('')
-    try { const o = await api.book(inv, s); setDone({ id: o.booking.id, start: o.booking.start, rep: o.rep, buffer: o.buffer, why: res!.why }); toast('Booked. Confirmation email sent.'); const r = await api.route(inv); setRes(r) }
-    catch (e) { setErr((e as Error).message) } finally { setBooking(null) }
-  }
   const rep = res?.rep
+  const tf = h12 ? 'h:mma' : 'HH:mm'
 
-  return <div className="grid items-start gap-10 md:grid-cols-[300px_1fr]">
-    <Card>
-      <CardHeader><CardTitle>Talk to Halden Group</CardTitle><CardDescription>Tell us a little about you and we'll find the right person.</CardDescription></CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2"><Label htmlFor="em">Work email</Label><Input id="em" value={f.email} onChange={e => setF({ ...f, email: e.target.value })} /></div>
-        <div className="space-y-2"><Label htmlFor="lo">Where are you based?</Label><NativeSelect id="lo" value={f.loc} onChange={e => setF({ ...f, loc: +e.target.value })}>{st.locs.map((l, i) => <option key={l[0]} value={i}>{l[0]}</option>)}</NativeSelect></div>
-        <div className="space-y-2"><Label htmlFor="to">What's this about?</Label><NativeSelect id="to" value={f.topic} onChange={e => setF({ ...f, topic: e.target.value })}><option value="general">General / pricing</option><option value="technical">Technical / integration</option><option value="billing">Billing</option></NativeSelect></div>
-        <div className="space-y-2"><Label htmlFor="la">Preferred language</Label><NativeSelect id="la" value={f.lang} onChange={e => setF({ ...f, lang: e.target.value })}>{['English', 'Spanish', 'French', 'German'].map(x => <option key={x}>{x}</option>)}</NativeSelect></div>
-        <Button className="w-full" onClick={() => run()}>Find my person <ArrowRight /></Button>
-        <div className="border-t border-foreground/15 pt-4"><p className="mb-3 font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted-foreground">Try a scenario</p>
-          <ol className="divide-y divide-foreground/10">{PRESETS.map((p, i) => <li key={p.label}><button onClick={() => preset(p)} className="group flex w-full items-baseline gap-3 py-2 text-left text-[13px] transition-colors hover:text-accent"><span className="font-mono text-[10.5px] text-muted-foreground">0{i + 1}</span>{p.label}<span className="ml-auto opacity-0 transition-opacity group-hover:opacity-100">→</span></button></li>)}</ol></div>
-      </CardContent>
-    </Card>
+  const byDay = useMemo(() => { const m: Record<string, string[]> = {}; (res?.slots || []).forEach(s => { const k = DateTime.fromISO(s).setZone(inv.tz).toISODate()!; (m[k] ||= []).push(s) }); return m }, [res, inv.tz])
 
-    <div className="space-y-4">
-      <Card className="min-h-[460px]">
-        <CardContent className="pt-5">
-          {loading || !res ? <div className="space-y-4" aria-busy="true">
-            <div className="flex items-center gap-3"><Skeleton className="size-11 rounded-full" /><div className="flex-1 space-y-2"><Skeleton className="h-5 w-1/2" /><Skeleton className="h-3.5 w-3/4" /></div></div>
-            <Skeleton className="h-36" /><div className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-2">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[62px]" />)}</div>
-          </div> : !rep ? <Alert variant="destructive">No one is available right now.</Alert> : <div className="animate-fade-up">
-            <div className="flex items-center gap-3">
-              <div className="grid size-12 shrink-0 place-items-center rounded-full bg-accent text-[15px] font-semibold text-white animate-in zoom-in-90 duration-300">{initials(rep.name)}</div>
-              <div><h2 className="text-[26px] font-semibold leading-tight tracking-[-0.03em]">You'll meet {rep.name}</h2>
-                <p className="font-mono text-[11px] text-muted-foreground">{rep.terr} · {city(rep.tz)} · {rep.skills.join(', ')} · speaks {rep.langs.join(', ')}</p></div>
-              {res.why === 'owner' && <span className="ml-auto self-start font-mono text-[10.5px] uppercase tracking-[0.08em] text-accent">Your account owner</span>}
-            </div>
-            <div className="mt-6">
-              <p className="mb-3 font-mono text-[10.5px] uppercase tracking-[0.1em] text-muted-foreground">Decision log: why {first(rep.name)}</p>
-              <ol className="relative ml-[9px] border-l border-foreground/20">{res.trace.map((s, i) => <li key={i} style={{ animationDelay: `${i * 70}ms` }} className="relative flex flex-wrap items-baseline gap-x-3 gap-y-1 py-1.5 pl-6 text-[13px] animate-fade-up">
-                <span className={cn('absolute -left-[9px] top-[9px] grid size-[17px] place-items-center rounded-full border bg-background font-mono text-[9.5px]', s.s === 'ok' ? 'border-foreground text-foreground' : 'border-foreground/25 text-muted-foreground')}>{i + 1}</span><span className="min-w-[230px] flex-1">{s.t}</span>
-                <Badge variant={s.s === 'ok' ? 'success' : s.s === 'warn' ? 'warning' : 'outline'}>{s.r}</Badge></li>)}</ol>
-            </div>
-            <div className="mt-8 flex flex-wrap items-baseline justify-between gap-2 border-t border-foreground/15 pt-4"><h3 className="text-[17px] font-semibold tracking-[-0.02em]">Pick a time</h3><span className="font-mono text-[11px] text-muted-foreground">Inside both your day and {first(rep.name)}'s{st.buffer ? ' · 10-min buffer' : ''}</span></div>
-            <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-2">
-              {res.slots.map((s, i) => { const d = DateTime.fromISO(s); return <button key={s} disabled={!!booking} onClick={() => book(s)} style={{ animationDelay: `${Math.min(i, 8) * 25}ms` }}
-                className={cn('group min-h-[62px] rounded-xl border border-input bg-white px-3 py-2.5 text-left transition-all duration-150 hover:border-accent hover:bg-accent hover:text-white active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 animate-fade-up disabled:opacity-60', booking === s && 'border-accent bg-accent text-white')}>
-                <div className="font-mono text-[13px] font-medium">{d.setZone(inv.tz).toFormat('ccc d LLL · HH:mm')}</div>
-                <div className="mt-0.5 font-mono text-[11px] text-muted-foreground group-hover:text-white/70">{d.setZone(rep.tz).toFormat('HH:mm')} for {first(rep.name)} ({city(rep.tz)})</div></button> })}
-            </div>
-            {err && <Alert variant="destructive" className="mt-3">{err}</Alert>}
-          </div>}
-        </CardContent>
-      </Card>
+  async function go(i = inv) {
+    setStage('pick'); setRes(null); setErr(''); setSel(null); setWhy(false)
+    const [r] = await Promise.all([api.route(i), new Promise(ok => setTimeout(ok, 350))]) as [RouteRes, unknown]
+    setRes(r); const firstDay = r.slots[0] ? DateTime.fromISO(r.slots[0]).setZone(i.tz) : null
+    setDay(firstDay?.toISODate() ?? null); if (firstDay) setMonth(firstDay.startOf('month'))
+  }
+  async function preset(p: typeof PRESETS[number]) {
+    setDemo(false); const nf = { email: p.email, loc: p.loc, topic: p.topic, lang: p.lang }; setF(nf)
+    await api.leave('lena', p.away); reload(); const L2 = st.locs[p.loc]
+    go({ email: p.email, loc: L2[0], tz: L2[1], terr: L2[2], topic: p.topic, lang: p.lang })
+  }
+  async function confirm() {
+    if (!sel) return; setBusy(true); setErr('')
+    try { const o = await api.book(inv, sel); setDone({ id: o.booking.id, start: o.booking.start, buffer: o.buffer }); setStage('done'); toast('Meeting booked') }
+    catch (e) { setErr((e as Error).message); go() } finally { setBusy(false) }
+  }
+  useEffect(() => { setSel(null) }, [day])
 
-      {done && done.rep && <Card>
-        <CardHeader><CardTitle>Booked with {done.rep.name}<span className="text-accent">.</span></CardTitle><CardDescription className="font-mono text-[11px]">{done.id} · saved to server · confirmation sent</CardDescription></CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-3 divide-x divide-foreground/15 border-y border-foreground/15">{[[inv.tz, 'You'], [done.rep.tz, done.rep.name.split(' ')[0]], ['UTC', 'Stored (UTC)']].map(([z, l]) => { const d = DateTime.fromISO(done.start).setZone(z); return <div key={l} className="px-4 py-3 animate-fade-up"><p className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-muted-foreground">{l} · {z === 'UTC' ? 'UTC' : city(z)}</p><p className="font-mono text-[28px] font-medium tracking-tight">{d.toFormat('HH:mm')}</p><p className="text-xs text-muted-foreground">{d.toFormat('ccc d LLL')}</p></div> })}</div>
-          {done.buffer && <Alert variant="success">10-min buffer blocked after this meeting on {first(done.rep.name)}'s calendar.</Alert>}
-          <div className="border-l-2 border-foreground bg-white/60 p-4 text-[13px] leading-relaxed">
-            <p><b>Subject:</b> Halden Group · {DateTime.fromISO(done.start).setZone(inv.tz).toFormat('ccc d LLL, HH:mm')} your time ({city(inv.tz)})</p>
-            <p className="mt-2">Hi, you're meeting <b>{done.rep.name}</b>{done.why === 'owner' ? ', your account manager' : `, our ${inv.topic === 'technical' ? 'solutions engineer' : 'specialist'} for ${inv.terr}`}.</p>
-            <p className="flex items-center gap-1.5"><Globe2 className="size-3.5" /><b>{DateTime.fromISO(done.start).setZone(inv.tz).toFormat('cccc d LLLL, HH:mm')} {city(inv.tz)} time</b> = {DateTime.fromISO(done.start).setZone(done.rep.tz).toFormat('HH:mm')} {city(done.rep.tz)}</p>
-          </div>
-        </CardContent>
-      </Card>}
-    </div>
+  // calendar grid
+  const start = month.startOf('week'), cells = Array.from({ length: 42 }, (_, i) => start.plus({ days: i }))
+  const daySlots = day ? byDay[day] || [] : []
+
+  const demoMenu = <div className="fixed bottom-4 left-4 z-40">
+    {demo && <div className="mb-2 w-64 rounded-lg border bg-white p-1.5 shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-150">
+      <p className="px-2 py-1.5 text-xs text-muted-foreground">Demo scenarios</p>
+      {PRESETS.map(p => <button key={p.label} onClick={() => preset(p)} className="block w-full rounded-md px-2 py-1.5 text-left text-[13px] hover:bg-muted">{p.label}</button>)}
+    </div>}
+    <Button variant="outline" size="sm" className="shadow-sm" onClick={() => setDemo(!demo)}>Demo scenarios</Button>
   </div>
+
+  if (stage === 'intake') return <>{demoMenu}
+    <div className="mx-auto max-w-md rounded-xl border bg-white p-6 shadow-sm animate-fade-up">
+      <Logo />
+      <h2 className="mt-5 text-lg font-semibold">Book a call</h2>
+      <p className="mt-1 text-[13px] text-muted-foreground">A few details so we can connect you with the right person.</p>
+      <form className="mt-5 space-y-4" onSubmit={e => { e.preventDefault(); go() }}>
+        <div className="space-y-1.5"><Label htmlFor="em">Work email</Label><Input id="em" type="email" required value={f.email} onChange={e => setF({ ...f, email: e.target.value })} /></div>
+        <div className="space-y-1.5"><Label htmlFor="lo">Location</Label><NativeSelect id="lo" value={f.loc} onChange={e => setF({ ...f, loc: +e.target.value })}>{st.locs.map((l, i) => <option key={l[0]} value={i}>{l[0]}</option>)}</NativeSelect></div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5"><Label htmlFor="to">Topic</Label><NativeSelect id="to" value={f.topic} onChange={e => setF({ ...f, topic: e.target.value })}>{Object.entries(TOPIC).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</NativeSelect></div>
+          <div className="space-y-1.5"><Label htmlFor="la">Language</Label><NativeSelect id="la" value={f.lang} onChange={e => setF({ ...f, lang: e.target.value })}>{['English', 'Spanish', 'French', 'German'].map(x => <option key={x}>{x}</option>)}</NativeSelect></div>
+        </div>
+        <Button type="submit" className="w-full">Continue</Button>
+      </form>
+    </div></>
+
+  if (stage === 'done' && done && rep) { const s = DateTime.fromISO(done.start); return <>{demoMenu}
+    <div className="mx-auto max-w-lg rounded-xl border bg-white p-8 text-center shadow-sm animate-fade-up">
+      <div className="mx-auto grid size-11 place-items-center rounded-full bg-green-100 text-green-700 animate-in zoom-in-50 duration-300"><Check className="size-5" /></div>
+      <h2 className="mt-4 text-lg font-semibold">This meeting is scheduled</h2>
+      <p className="mt-1 text-[13px] text-muted-foreground">We sent a calendar invitation to {inv.email}.</p>
+      <dl className="mt-6 divide-y border-y text-left text-[13px]">
+        {[['What', `${TOPIC[inv.topic]} with Halden Group`], ['When', `${s.setZone(inv.tz).toFormat(`cccc d LLLL · ${tf}`)} (${city(inv.tz)} time)`], ['Who', `${rep.name}${res?.why === 'owner' ? ' · your account manager' : ''}`], ['Their time', `${s.setZone(rep.tz).toFormat(tf)} in ${city(rep.tz)}`], ['Where', 'Google Meet']].map(([k, v]) =>
+          <div key={k} className="grid grid-cols-[90px_1fr] py-2.5"><dt className="font-medium">{k}</dt><dd className="text-muted-foreground">{v}</dd></div>)}
+      </dl>
+      {done.buffer && <p className="mt-4 text-xs text-muted-foreground">A 10-minute buffer was added after this meeting on {first(rep.name)}'s calendar.</p>}
+      <div className="mt-6 flex justify-center gap-2"><Button variant="outline" onClick={() => go()}>Book another time</Button><Button variant="outline" onClick={() => setStage('intake')}>Start over</Button></div>
+    </div></> }
+
+  return <>{demoMenu}
+    <div className="mx-auto max-w-5xl overflow-hidden rounded-xl border bg-white shadow-sm animate-fade-up">
+      <div className="grid md:grid-cols-[280px_1fr_250px]">
+        {/* left: who + what */}
+        <aside className="border-b p-5 md:border-b-0 md:border-r">
+          <button onClick={() => setStage('intake')} className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" />Edit details</button>
+          <Logo />
+          {!rep ? <div className="mt-6 space-y-3"><Skeleton className="h-10 w-10 rounded-full" /><Skeleton className="h-4 w-2/3" /><Skeleton className="h-3 w-1/2" /></div> : <div className="animate-fade-up">
+            <div className="mt-6 flex items-center gap-3">
+              <div className="grid size-10 place-items-center rounded-full bg-blue-600 text-[13px] font-semibold text-white">{initials(rep.name)}</div>
+              <div><p className="text-[13px] text-muted-foreground">You'll meet</p><p className="font-semibold">{rep.name}</p></div>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1">{res?.why === 'owner' ? <Badge variant="default">Your account manager</Badge> : <><Badge>{rep.terr}</Badge>{inv.topic === 'technical' && <Badge>Solutions engineer</Badge>}{rep.langs.includes(inv.lang) && inv.lang !== 'English' && <Badge>Speaks {inv.lang}</Badge>}</>}</div>
+            <h2 className="mt-5 text-lg font-semibold">{TOPIC[inv.topic]}</h2>
+            <ul className="mt-3 space-y-2 text-[13px] text-muted-foreground">
+              <li className="flex items-center gap-2"><Clock className="size-4" />30 min</li>
+              <li className="flex items-center gap-2"><Video className="size-4" />Google Meet</li>
+              <li className="flex items-center gap-2"><Globe className="size-4" />{city(inv.tz)} time</li>
+            </ul>
+            <button onClick={() => setWhy(!why)} className="mt-5 inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:underline"><Info className="size-3.5" />Why {first(rep.name)}?</button>
+            {why && <ul className="mt-2 space-y-1.5 rounded-lg bg-gray-50 p-3 text-xs animate-in fade-in slide-in-from-top-1 duration-150">
+              {res!.trace.filter(s => s.s !== 'mut').map((s, i) => <li key={i} className="flex gap-1.5"><span className={cn('mt-1 size-1.5 shrink-0 rounded-full', s.s === 'ok' ? 'bg-green-600' : 'bg-amber-500')} /><span><span className="text-muted-foreground">{s.t.split('→')[0].trim()}:</span> {s.r}</span></li>)}
+            </ul>}
+          </div>}
+        </aside>
+
+        {/* middle: calendar */}
+        <section className="border-b p-5 md:border-b-0 md:border-r">
+          <div className="flex items-center justify-between"><h3 className="font-semibold">{month.toFormat('LLLL yyyy')}</h3>
+            <div className="flex gap-1"><Button variant="ghost" size="icon" aria-label="Previous month" onClick={() => setMonth(month.minus({ months: 1 }))}><ChevronLeft /></Button><Button variant="ghost" size="icon" aria-label="Next month" onClick={() => setMonth(month.plus({ months: 1 }))}><ChevronRight /></Button></div></div>
+          <div className="mt-4 grid grid-cols-7 text-center text-[11px] font-medium uppercase text-muted-foreground">{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => <div key={d} className="py-1">{d}</div>)}</div>
+          <div className="mt-1 grid grid-cols-7 gap-1">{cells.map(c => { const k = c.toISODate()!, has = !!byDay[k], inM = c.month === month.month, on = k === day
+            return <button key={k} disabled={!has || !rep} onClick={() => setDay(k)} aria-pressed={on}
+              className={cn('relative aspect-square rounded-md text-[13px] tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                !inM && 'invisible', on ? 'bg-gray-900 font-semibold text-white' : has && rep ? 'bg-gray-100 font-semibold hover:bg-gray-200' : 'text-gray-300')}>
+              {c.day}{has && !on && <span className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-blue-600" />}</button> })}</div>
+        </section>
+
+        {/* right: times */}
+        <section className="p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-[13px] font-semibold">{day ? <>{DateTime.fromISO(day).toFormat('ccc')} <span className="text-muted-foreground">{DateTime.fromISO(day).toFormat('d')}</span></> : <CalendarDays className="size-4" />}</p>
+            <div className="flex rounded-md border p-0.5 text-[11px]">{[false, true].map(v => <button key={String(v)} onClick={() => setH12(v)} className={cn('rounded px-1.5 py-0.5 transition-colors', h12 === v ? 'bg-gray-900 text-white' : 'text-muted-foreground')}>{v ? '12h' : '24h'}</button>)}</div>
+          </div>
+          <div className="mt-3 max-h-[380px] space-y-2 overflow-y-auto pr-1">
+            {!res ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10" />) :
+              daySlots.length === 0 ? <p className="text-[13px] text-muted-foreground">No times this day.</p> :
+              daySlots.map((s, i) => { const d = DateTime.fromISO(s), on = sel === s
+                return <div key={s} className="flex gap-2 animate-fade-up" style={{ animationDelay: `${i * 30}ms` }}>
+                  <button onClick={() => setSel(on ? null : s)} title={`${d.setZone(rep!.tz).toFormat(tf)} for ${first(rep!.name)} in ${city(rep!.tz)}`}
+                    className={cn('h-10 flex-1 rounded-md border text-[13px] font-semibold tabular-nums transition-all duration-150 hover:border-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', on && 'bg-gray-700 text-white border-gray-700')}>
+                    {d.setZone(inv.tz).toFormat(tf).toLowerCase()}</button>
+                  {on && <Button className="h-10 animate-in fade-in slide-in-from-left-2 duration-150" disabled={busy} onClick={confirm}>{busy ? 'Booking…' : 'Confirm'}</Button>}
+                </div> })}
+          </div>
+          {sel && rep && <p className="mt-3 text-xs text-muted-foreground animate-fade-up">That's {DateTime.fromISO(sel).setZone(rep.tz).toFormat(tf).toLowerCase()} for {first(rep.name)} in {city(rep.tz)}.</p>}
+          {err && <p className="mt-3 text-xs text-red-600">{err}</p>}
+        </section>
+      </div>
+    </div></>
 }
