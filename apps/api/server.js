@@ -225,7 +225,7 @@ async function handler(req, res) {
     }
     let cm;
     if ((cm = p.match(/^\/api\/bookings\/([\w-]+)$/)) && m === 'DELETE') {
-      const b = store.updateBooking(cm[1], { status: 'cancelled' }); if (!b) return send(res, 404, { error: 'not found' });
+      const b = store.updateBooking(cm[1], { status: 'cancelled' }); if (!b) return send(res, 404, { error: 'not found', path: p });
       const r = rep(b.repId);
       log('ops@halden', 'Meeting cancelled', `${b.id} · ${b.who} with ${r ? r.name : b.repId}; slot released`);
       return send(res, 200, b);
@@ -276,7 +276,7 @@ async function handler(req, res) {
       }
     }
 
-    if (p.startsWith('/api/') || p.startsWith('/scim/')) return send(res, 404, { error: 'not found' });
+    if (p.startsWith('/api/') || p.startsWith('/scim/')) return send(res, 404, { error: 'not found', path: p });
 
     // static frontend (GET/HEAD only); resolve + prefix check blocks path traversal
     if (m === 'GET' || m === 'HEAD') {
@@ -291,7 +291,7 @@ async function handler(req, res) {
         }
       }
     }
-    send(res, 404, { error: 'not found' });
+    send(res, 404, { error: 'not found', path: p });
   } catch (e) {
     if (e instanceof HttpError) return send(res, e.code, { error: e.message });
     console.error(e); send(res, 500, { error: 'internal error' });
