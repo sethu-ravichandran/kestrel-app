@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { DateTime } from 'luxon'
-import { ArrowDown, ArrowUp, Download, KeyRound, Lightbulb, ShieldCheck, UserX } from 'lucide-react'
+import { Activity, ArrowDown, ArrowRightLeft, ArrowUp, CalendarPlus, CalendarX, Download, GitBranch, KeyRound, Lightbulb, Plane, ShieldCheck, Timer, UserPlus, UserX, Wrench } from 'lucide-react'
 import { api, apiUrl, city, type Audit, type State, type SimRow } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -109,26 +109,61 @@ export default function Admin({ st, reload, show }: { st: State; reload: () => P
 }
 
 const ACTORS = [['all', 'All'], ['ops', 'People'], ['okta-scim', 'Okta / SCIM'], ['booking-page', 'Bookings'], ['kestrel', 'System']] as const
+const SRC: Record<string, { label: string; tone: string; bar: string }> = {
+  ops: { label: 'People', tone: 'bg-primary/10 text-primary', bar: 'bg-primary' },
+  'okta-scim': { label: 'Okta / SCIM', tone: 'bg-[#6d4aff]/10 text-[#6d4aff] dark:text-[#a996ff]', bar: 'bg-[#6d4aff]' },
+  'booking-page': { label: 'Bookings', tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', bar: 'bg-emerald-500' },
+  kestrel: { label: 'System', tone: 'bg-amber-500/10 text-amber-600 dark:text-amber-400', bar: 'bg-amber-500' },
+}
+const srcOf = (w: string) => (w.includes('@') ? 'ops' : SRC[w] ? w : 'kestrel')
+const ICON: [RegExp, typeof Download][] = [[/booked/i, CalendarPlus], [/cancel/i, CalendarX], [/deprovision/i, UserX], [/provision/i, UserPlus], [/rule|routing/i, GitBranch], [/reassign/i, ArrowRightLeft], [/leave/i, Plane], [/buffer/i, Timer], [/skill/i, Wrench], [/fallback/i, ShieldCheck]]
+const iconOf = (ev: string) => (ICON.find(([r]) => r.test(ev)) || [null, Activity])[1]
+const initialsOf = (w: string) => w.includes('@') ? w.split('@')[0].slice(0, 2).toUpperCase() : w === 'okta-scim' ? 'OK' : w === 'booking-page' ? 'BP' : 'KS'
+
 function AuditPage({ audit }: { audit: Audit[] }) {
   const [f, setF] = useState<(typeof ACTORS)[number][0]>('all')
   const [q, setQ] = useState('')
-  const match = (a: Audit) => (f === 'all' || (f === 'ops' ? a.who.includes('@') : a.who === f)) && (a.ev + a.d + a.who).toLowerCase().includes(q.toLowerCase())
+  const now = DateTime.now()
+  const match = (a: Audit) => (f === 'all' || srcOf(a.who) === f) && (a.ev + a.d + a.who).toLowerCase().includes(q.toLowerCase())
   const rows = audit.filter(match)
-  const groups = rows.reduce<Record<string, Audit[]>>((g, a) => { const d = DateTime.fromISO(a.t), k = d.hasSame(DateTime.now(), 'day') ? 'Today' : d.hasSame(DateTime.now().minus({ days: 1 }), 'day') ? 'Yesterday' : d.toFormat('cccc d LLL'); (g[k] ||= []).push(a); return g }, {})
-  const dot = (w: string) => w === 'okta-scim' ? 'bg-[#6d4aff]' : w === 'booking-page' ? 'bg-emerald-500' : w === 'kestrel' ? 'bg-amber-500' : 'bg-primary'
-  return <Card>
-    <CardHeader className="flex-row flex-wrap items-center gap-3 space-y-0">
-      <div className="flex flex-wrap gap-1 rounded-full bg-[hsl(var(--muted))] p-1 text-[13px]">{ACTORS.map(([k, l]) => <button key={k} onClick={() => setF(k)} className={cn('rounded-full px-3 py-1 font-medium transition-all duration-fast', f === k ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>{l}</button>)}</div>
-      <input aria-label="Search audit log" placeholder="Search events" value={q} onChange={e => setQ(e.target.value)} className="ml-auto h-9 w-full rounded-full border border-input bg-white px-4 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 sm:w-56" />
-      <Button variant="outline" size="sm" onClick={() => { location.href = apiUrl('/api/audit.csv') }}><Download />Export CSV</Button>
-    </CardHeader>
-    <CardContent>
-      {rows.length === 0 ? <div className="py-14 text-center"><p className="font-medium">No events match</p><p className="mt-1 text-[13px] text-muted-foreground">Try a different filter or search term.</p></div> :
-        Object.entries(groups).map(([day, items]) => <div key={day} className="mb-4 last:mb-0">
-          <p className="mb-1 text-xs font-medium text-muted-foreground">{day}</p>
-          <ol className="relative ml-1 border-l border-[hsl(var(--line))]">{items.map((a, i) => <li key={a.t + i} className="relative py-2 pl-5 text-[13px] animate-fade-up" style={{ animationDelay: i * 25 + 'ms' }}>
-            <span className={cn('absolute -left-[4.5px] top-[13px] size-2 rounded-full ring-4 ring-[hsl(var(--card))]', dot(a.who))} />
-            <div className="flex flex-wrap items-baseline gap-x-2"><span className="font-medium">{a.ev}</span><span className="text-xs text-muted-foreground">{a.who}</span><span className="ml-auto text-xs tabular-nums text-muted-foreground">{DateTime.fromISO(a.t).toFormat('HH:mm')}</span></div>
-            <p className="text-muted-foreground">{a.d}</p></li>)}</ol></div>)}
-    </CardContent></Card>
+  const groups = rows.reduce<Record<string, Audit[]>>((g, a) => { const d = DateTime.fromISO(a.t), k = d.hasSame(now, 'day') ? 'Today' : d.hasSame(now.minus({ days: 1 }), 'day') ? 'Yesterday' : d.toFormat('cccc d LLL'); (g[k] ||= []).push(a); return g }, {})
+  const days = Array.from({ length: 14 }, (_, i) => now.minus({ days: 13 - i }).startOf('day'))
+  const perDay = days.map(d => Object.keys(SRC).map(k => audit.filter(a => srcOf(a.who) === k && DateTime.fromISO(a.t).hasSame(d, 'day')).length))
+  const maxDay = Math.max(1, ...perDay.map(x => x.reduce((a, b) => a + b, 0)))
+  const counts = Object.keys(SRC).map(k => audit.filter(a => srcOf(a.who) === k).length)
+  return <div className="space-y-4">
+    <div className="grid gap-4 lg:grid-cols-[1fr_1.3fr]">
+      <div className="grid grid-cols-2 gap-3">{Object.entries(SRC).map(([k, v], i) => <button key={k} onClick={() => setF(f === k ? 'all' : k as typeof f)}
+        className={cn('rounded-2xl border border-[hsl(var(--line))] bg-[hsl(var(--card))] p-4 text-left transition-all duration-base hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring animate-fade-up', f === k && 'ring-2 ring-primary')} style={{ animationDelay: i * 40 + 'ms' }}>
+        <span className={cn('inline-flex rounded-md px-1.5 py-0.5 text-[11px] font-medium', v.tone)}>{v.label}</span>
+        <p className="mt-2 text-2xl font-semibold tabular-nums tracking-tight">{counts[i]}</p><p className="text-xs text-muted-foreground">events · 14 days</p></button>)}</div>
+      <Card className="p-5"><div className="flex items-baseline justify-between"><h3 className="font-semibold">Activity</h3><span className="text-xs text-muted-foreground">Last 14 days</span></div>
+        <div className="mt-4 flex h-32 items-end gap-1.5">{perDay.map((seg, i) => { const tot = seg.reduce((a, b) => a + b, 0)
+          return <div key={i} className="group relative flex h-full flex-1 flex-col justify-end" title={`${days[i].toFormat('d LLL')} · ${tot} events`}>
+            <div className="flex flex-col-reverse overflow-hidden rounded-[4px] transition-opacity group-hover:opacity-80" style={{ height: tot ? `${(tot / maxDay) * 100}%` : '3px', animation: `grow .5s ${i * 30}ms cubic-bezier(.2,.8,.2,1) both`, transformOrigin: 'bottom' }}>
+              {tot ? Object.values(SRC).map((v, k) => seg[k] ? <div key={k} className={v.bar} style={{ height: `${(seg[k] / tot) * 100}%` }} /> : null) : <div className="h-full bg-[hsl(var(--muted))]" />}</div></div> })}</div>
+        <div className="mt-2 flex justify-between text-[10px] tabular-nums text-muted-foreground"><span>{days[0].toFormat('d LLL')}</span><span>Today</span></div></Card>
+    </div>
+
+    <Card>
+      <CardHeader className="flex-row flex-wrap items-center gap-3 space-y-0">
+        <div className="flex flex-wrap gap-1 rounded-full bg-[hsl(var(--muted))] p-1 text-[13px]">{ACTORS.map(([k, l]) => <button key={k} onClick={() => setF(k)} className={cn('rounded-full px-3 py-1 font-medium transition-all duration-fast', f === k ? 'bg-[hsl(var(--card))] text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>{l}</button>)}</div>
+        <input aria-label="Search audit log" placeholder="Search events" value={q} onChange={e => setQ(e.target.value)} className="ml-auto h-9 w-full rounded-full border border-input bg-white px-4 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 sm:w-56" />
+        <Button variant="outline" size="sm" onClick={() => { location.href = apiUrl('/api/audit.csv') }}><Download />Export CSV</Button>
+      </CardHeader>
+      <CardContent>
+        {rows.length === 0 ? <div className="py-14 text-center"><div className="mx-auto grid size-10 place-items-center rounded-full bg-[hsl(var(--muted))]"><Activity className="size-4 text-muted-foreground" /></div><p className="mt-3 font-medium">No events match</p><p className="mt-1 text-[13px] text-muted-foreground">Try a different filter or search term.</p></div> :
+          Object.entries(groups).map(([day, items]) => <div key={day} className="mb-5 last:mb-0">
+            <div className="sticky top-0 z-10 mb-2 flex items-center gap-3 bg-[hsl(var(--card))] py-1"><p className="text-xs font-semibold">{day}</p><div className="h-px flex-1 bg-[hsl(var(--line))]" /><span className="text-[11px] tabular-nums text-muted-foreground">{items.length}</span></div>
+            <ol className="space-y-1">{items.map((a, i) => { const k = srcOf(a.who), I = iconOf(a.ev)
+              return <li key={a.t + i} className="group flex items-start gap-3 rounded-xl p-2.5 transition-colors hover:bg-[hsl(var(--muted)/.6)] animate-fade-up" style={{ animationDelay: i * 30 + 'ms' }}>
+                <span className={cn('grid size-9 shrink-0 place-items-center rounded-lg', SRC[k].tone)}><I className="size-4" /></span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1"><span className="text-[13px] font-medium">{a.ev}</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[hsl(var(--line))] py-0.5 pl-0.5 pr-2 text-[11px] text-muted-foreground"><span className="grid size-4 place-items-center rounded-full bg-[hsl(var(--muted))] text-[8px] font-semibold text-foreground">{initialsOf(a.who)}</span>{a.who}</span></div>
+                  <p className="mt-0.5 truncate text-[13px] text-muted-foreground group-hover:whitespace-normal">{a.d}</p></div>
+                <span className="shrink-0 pt-0.5 text-xs tabular-nums text-muted-foreground" title={DateTime.fromISO(a.t).toFormat('d LLL yyyy, HH:mm')}>{DateTime.fromISO(a.t).toRelative({ style: 'short' })}</span>
+              </li> })}</ol></div>)}
+      </CardContent></Card>
+  </div>
 }

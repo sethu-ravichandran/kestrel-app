@@ -52,10 +52,10 @@ function Shell() {
         return <button key={n.v} onClick={() => nav(n.v)} className={cn('flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] transition-colors duration-fast', on ? 'bg-primary/20 font-medium text-white shadow-[inset_2px_0_0_hsl(var(--primary))]' : 'text-white/60 hover:bg-white/[.06] hover:text-white')}>
           <I className="size-4" />{n.label}</button> })}</nav>
       <div className="mt-auto space-y-0.5 p-3">
-        <div role="radiogroup" aria-label="Theme" className="relative mx-1 mb-1 grid grid-cols-3 rounded-full border border-white/10 bg-white/[.04] p-1">
+        <div role="radiogroup" aria-label="Theme" className="relative mx-3 mb-1 grid w-[108px] grid-cols-3 rounded-full border border-white/10 bg-white/[.04] p-1">
           <span aria-hidden className="absolute inset-y-1 left-1 w-[calc((100%-8px)/3)] rounded-full bg-white/15 transition-transform duration-base ease-out" style={{ transform: `translateX(${['light', 'dark', 'system'].indexOf(theme) * 100}%)` }} />
           {([['light', Sun, 'Light'], ['dark', Moon, 'Dark'], ['system', Monitor, 'System']] as const).map(([v, I, l]) => <button key={v} role="radio" aria-checked={theme === v} aria-label={l} title={l} onClick={() => setTheme(v)}
-            className={cn('relative z-10 flex h-7 items-center justify-center gap-1 rounded-full text-[11px] transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary', theme === v ? 'text-white' : 'text-white/45 hover:text-white/80')}><I className="size-3.5" />{l}</button>)}
+            className={cn('relative z-10 flex h-7 items-center justify-center rounded-full transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary', theme === v ? 'text-white' : 'text-white/45 hover:text-white/80')}><I className="size-3.5" /></button>)}
         </div>
         <button onClick={async () => { await api.reset(); await reload(); setK(k + 1); toast('Demo data reset') }} className="flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-[13px] text-white/50 hover:bg-white/[.06] hover:text-white"><RotateCcw className="size-4" />Reset demo data</button>
         <div className="mt-2 flex items-center gap-2.5 border-t border-white/10 px-3 pt-3"><div className="grid size-7 place-items-center rounded-full bg-blue-600 text-[11px] font-semibold text-white">MR</div><div className="text-xs"><p className="font-medium">Maya Raman</p><p className="text-white/50">Admin</p></div></div>
