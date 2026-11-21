@@ -53,7 +53,7 @@ function Shell() {
           <I className="size-4" />{n.label}</button> })}</nav>
       <div className="mt-auto space-y-0.5 p-3">
         <button onClick={async () => { await api.reset(); await reload(); setK(k + 1); toast('Demo data reset') }} className="flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-[13px] text-white/50 hover:bg-white/[.06] hover:text-white"><RotateCcw className="size-4" />Reset demo data</button>
-        <div className="mt-2 flex items-center gap-2.5 border-t border-white/10 px-3 pt-3"><div className="grid size-7 place-items-center rounded-full bg-blue-600 text-[11px] font-semibold text-white">MR</div><div className="text-xs"><p className="font-medium">Maya Raman</p><p className="text-white/50">Admin</p></div></div>
+        <div className="mt-2 flex items-center gap-2.5 border-t border-white/10 px-3 pt-3"><div className="grid size-7 place-items-center rounded-full bg-blue-600 text-[11px] font-semibold text-white">MR</div><div className="text-xs"><p className="font-medium">Maya Raman</p><p className="text-white/50">CPO (Admin)</p></div></div>
       </div>
     </aside>
 
