@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { DateTime } from 'luxon'
-import { ArrowLeft, CalendarDays, Check, ChevronLeft, ChevronRight, Clock, Globe, Info, Video } from 'lucide-react'
+import { ArrowLeft, CalendarDays, ChevronLeft, ChevronRight, Clock, Globe, Info, Video } from 'lucide-react'
 import { api, city, type Invitee, type RouteRes, type State } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -33,6 +33,8 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
   const [done, setDone] = useState<{ id: string; start: string; buffer: boolean } | null>(null)
   const [err, setErr] = useState('')
   const [demo, setDemo] = useState(false)
+  const [dir, setDir] = useState(0)
+  const shiftMonth = (d: number) => { setDir(d); setMonth(month.plus({ months: d })) }
   const L = st.locs[f.loc]
   const inv: Invitee = { email: f.email, loc: L[0], tz: L[1], terr: L[2], topic: f.topic, lang: f.lang }
   const rep = res?.rep
@@ -65,7 +67,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
   const demoMenu = <div className="fixed bottom-4 left-4 z-40">
     {demo && <div className="mb-2 w-64 rounded-lg border bg-white p-1.5 shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-150">
       <p className="px-2 py-1.5 text-xs text-muted-foreground">Demo scenarios</p>
-      {PRESETS.map(p => <button key={p.label} onClick={() => preset(p)} className="block w-full rounded-md px-2 py-1.5 text-left text-[13px] hover:bg-muted">{p.label}</button>)}
+      {PRESETS.map(p => <button key={p.label} onClick={() => preset(p)} className="block h-9 w-full rounded-md px-2 text-left text-[13px] transition-colors duration-fast hover:bg-muted focus-visible:bg-muted focus-visible:outline-none">{p.label}</button>)}
     </div>}
     <Button variant="outline" size="sm" className="shadow-sm" onClick={() => setDemo(!demo)}>Demo scenarios</Button>
   </div>
@@ -88,7 +90,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
 
   if (stage === 'done' && done && rep) { const s = DateTime.fromISO(done.start); return <>{demoMenu}
     <div className="mx-auto max-w-lg rounded-xl border bg-white p-8 text-center shadow-sm animate-fade-up">
-      <div className="mx-auto grid size-11 place-items-center rounded-full bg-green-100 text-green-700 animate-in zoom-in-50 duration-300"><Check className="size-5" /></div>
+      <div className="mx-auto grid size-11 place-items-center rounded-full bg-green-100 text-green-700 animate-pop"><svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" strokeDasharray="24" className="animate-draw" /></svg></div>
       <h2 className="mt-4 text-lg font-semibold">This meeting is scheduled</h2>
       <p className="mt-1 text-[13px] text-muted-foreground">We sent a calendar invitation to {inv.email}.</p>
       <dl className="mt-6 divide-y border-y text-left text-[13px]">
@@ -104,9 +106,9 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
       <div className="grid md:grid-cols-[280px_1fr_250px]">
         {/* left: who + what */}
         <aside className="border-b p-5 md:border-b-0 md:border-r">
-          <button onClick={() => setStage('intake')} className="mb-4 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"><ArrowLeft className="size-3.5" />Edit details</button>
+          <button onClick={() => setStage('intake')} className="-ml-1.5 mb-3 inline-flex h-8 items-center gap-1 rounded-md px-1.5 text-xs text-muted-foreground transition-colors duration-fast hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><ArrowLeft className="size-3.5" />Edit details</button>
           <Logo />
-          {!rep ? <div className="mt-6 space-y-3"><Skeleton className="h-10 w-10 rounded-full" /><Skeleton className="h-4 w-2/3" /><Skeleton className="h-3 w-1/2" /></div> : <div className="animate-fade-up">
+          {!rep ? <div className="mt-6"><div className="flex items-center gap-3"><Skeleton className="size-10 rounded-full" /><div className="space-y-1.5"><Skeleton className="h-3 w-16" /><Skeleton className="h-4 w-28" /></div></div><Skeleton className="mt-2 h-5 w-32 rounded-full" /><Skeleton className="mt-5 h-6 w-40" /><div className="mt-3 space-y-2"><Skeleton className="h-5 w-20" /><Skeleton className="h-5 w-28" /><Skeleton className="h-5 w-24" /></div></div> : <div className="animate-fade-up">
             <div className="mt-6 flex items-center gap-3">
               <div className="grid size-10 place-items-center rounded-full bg-blue-600 text-[13px] font-semibold text-white">{initials(rep.name)}</div>
               <div><p className="text-[13px] text-muted-foreground">You'll meet</p><p className="font-semibold">{rep.name}</p></div>
@@ -118,7 +120,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
               <li className="flex items-center gap-2"><Video className="size-4" />Google Meet</li>
               <li className="flex items-center gap-2"><Globe className="size-4" />{city(inv.tz)} time</li>
             </ul>
-            <button onClick={() => setWhy(!why)} className="mt-5 inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:underline"><Info className="size-3.5" />Why {first(rep.name)}?</button>
+            <button onClick={() => setWhy(!why)} aria-expanded={why} className="-ml-1.5 mt-4 inline-flex h-8 items-center gap-1 rounded-md px-1.5 text-xs font-medium text-blue-700 transition-colors duration-fast hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"><Info className="size-3.5" />Why {first(rep.name)}?</button>
             {why && <ul className="mt-2 space-y-1.5 rounded-lg bg-gray-50 p-3 text-xs animate-in fade-in slide-in-from-top-1 duration-150">
               {res!.trace.filter(s => s.s !== 'mut').map((s, i) => <li key={i} className="flex gap-1.5"><span className={cn('mt-1 size-1.5 shrink-0 rounded-full', s.s === 'ok' ? 'bg-green-600' : 'bg-amber-500')} /><span><span className="text-muted-foreground">{s.t.split('→')[0].trim()}:</span> {s.r}</span></li>)}
             </ul>}
@@ -128,12 +130,12 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
         {/* middle: calendar */}
         <section className="border-b p-5 md:border-b-0 md:border-r">
           <div className="flex items-center justify-between"><h3 className="font-semibold">{month.toFormat('LLLL yyyy')}</h3>
-            <div className="flex gap-1"><Button variant="ghost" size="icon" aria-label="Previous month" onClick={() => setMonth(month.minus({ months: 1 }))}><ChevronLeft /></Button><Button variant="ghost" size="icon" aria-label="Next month" onClick={() => setMonth(month.plus({ months: 1 }))}><ChevronRight /></Button></div></div>
+            <div className="flex gap-1"><Button variant="ghost" size="icon" aria-label="Previous month" onClick={() => shiftMonth(-1)}><ChevronLeft /></Button><Button variant="ghost" size="icon" aria-label="Next month" onClick={() => shiftMonth(1)}><ChevronRight /></Button></div></div>
           <div className="mt-4 grid grid-cols-7 text-center text-[11px] font-medium uppercase text-muted-foreground">{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => <div key={d} className="py-1">{d}</div>)}</div>
-          <div className="mt-1 grid grid-cols-7 gap-1">{cells.map(c => { const k = c.toISODate()!, has = !!byDay[k], inM = c.month === month.month, on = k === day
+          <div key={month.toISODate()} className={cn('mt-1 grid grid-cols-7 gap-1', dir > 0 ? 'animate-slide-l' : dir < 0 ? 'animate-slide-r' : '')}>{cells.map(c => { const k = c.toISODate()!, has = !!byDay[k], inM = c.month === month.month, on = k === day
             return <button key={k} disabled={!has || !rep} onClick={() => setDay(k)} aria-pressed={on}
-              className={cn('relative aspect-square rounded-md text-[13px] tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                !inM && 'invisible', on ? 'bg-gray-900 font-semibold text-white' : has && rep ? 'bg-gray-100 font-semibold hover:bg-gray-200' : 'text-gray-300')}>
+              className={cn('relative aspect-square min-h-9 rounded-md text-[13px] tabular-nums transition-[background-color,color,transform] duration-fast ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 enabled:active:scale-[.94] disabled:cursor-default',
+                !inM && 'invisible', on ? 'bg-gray-900 font-semibold text-white' : has && rep ? 'bg-blue-50 font-semibold text-blue-700 hover:bg-blue-100' : 'text-gray-300')}>
               {c.day}{has && !on && <span className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-blue-600" />}</button> })}</div>
         </section>
 
@@ -141,7 +143,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
         <section className="p-5">
           <div className="flex items-center justify-between">
             <p className="text-[13px] font-semibold">{day ? <>{DateTime.fromISO(day).toFormat('ccc')} <span className="text-muted-foreground">{DateTime.fromISO(day).toFormat('d')}</span></> : <CalendarDays className="size-4" />}</p>
-            <div className="flex rounded-md border p-0.5 text-[11px]">{[false, true].map(v => <button key={String(v)} onClick={() => setH12(v)} className={cn('rounded px-1.5 py-0.5 transition-colors', h12 === v ? 'bg-gray-900 text-white' : 'text-muted-foreground')}>{v ? '12h' : '24h'}</button>)}</div>
+            <div className="flex rounded-md border p-0.5 text-[11px]">{[false, true].map(v => <button key={String(v)} onClick={() => setH12(v)} aria-pressed={h12 === v} className={cn('rounded px-2 py-1 tabular-nums transition-colors duration-fast ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', h12 === v ? 'bg-gray-900 text-white' : 'text-muted-foreground hover:text-foreground')}>{v ? '12h' : '24h'}</button>)}</div>
           </div>
           <div className="mt-3 max-h-[380px] space-y-2 overflow-y-auto pr-1">
             {!res ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10" />) :
@@ -149,9 +151,9 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
               daySlots.map((s, i) => { const d = DateTime.fromISO(s), on = sel === s
                 return <div key={s} className="flex gap-2 animate-fade-up" style={{ animationDelay: `${i * 30}ms` }}>
                   <button onClick={() => setSel(on ? null : s)} title={`${d.setZone(rep!.tz).toFormat(tf)} for ${first(rep!.name)} in ${city(rep!.tz)}`}
-                    className={cn('h-10 flex-1 rounded-md border text-[13px] font-semibold tabular-nums transition-all duration-150 hover:border-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', on && 'bg-gray-700 text-white border-gray-700')}>
+                    className={cn('h-10 flex-1 rounded-md border text-[13px] font-semibold tabular-nums transition-[background-color,border-color,color,transform] duration-fast ease-out hover:border-blue-600 hover:text-blue-700 active:scale-[.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1', on && 'bg-gray-900 text-white border-gray-900 hover:border-gray-900 hover:text-white')}>
                     {d.setZone(inv.tz).toFormat(tf).toLowerCase()}</button>
-                  {on && <Button className="h-10 animate-in fade-in slide-in-from-left-2 duration-150" disabled={busy} onClick={confirm}>{busy ? 'Booking…' : 'Confirm'}</Button>}
+                  {on && <Button className="h-10 animate-slide-l" disabled={busy} aria-busy={busy} onClick={confirm}>{busy && <span className="size-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />}{busy ? 'Booking…' : 'Confirm'}</Button>}
                 </div> })}
           </div>
           {sel && rep && <p className="mt-3 text-xs text-muted-foreground animate-fade-up">That's {DateTime.fromISO(sel).setZone(rep.tz).toFormat(tf).toLowerCase()} for {first(rep.name)} in {city(rep.tz)}.</p>}
