@@ -111,7 +111,7 @@ export default function Admin({ st, reload, show }: { st: State; reload: () => P
           <div className="flex flex-wrap gap-2"><NativeSelect className="max-w-[220px]" value={dep} onChange={e => setDep(e.target.value)}>{active.map(r => <option key={r.id} value={r.id}>{r.name} ({r.terr})</option>)}</NativeSelect>
             <Button variant="destructive" disabled={pend === 'scim'} aria-busy={pend === 'scim'} onClick={() => run('scim', async () => { const id = dep; const h = (await api.scimDeactivate(id))['urn:kestrel:handover']; setHand({ ...h, id }); toast('SCIM: user deprovisioned and work handed over'); await refresh(); const nx = st.reps.find(r => r.active && r.id !== id); if (nx) setDep(nx.id) })}><UserX />Simulate Okta deprovision</Button></div>
           {hand && <Alert key={hand.id} variant="success" className="animate-fade-up"><p>Okta sent <code className="text-[11.5px]">PATCH /scim/v2/Users/{hand.id} {'{active:false}'}</code></p>
-            <ul className="mt-1 list-disc pl-5"><li>{hand.rep} removed from routing</li><li>{hand.accounts.length ? `${hand.accounts.join(', ')} → ${hand.peer}` : 'No named accounts to move'}</li><li>{hand.meetings} upcoming meetings → {hand.peer}, with one email to each invitee</li></ul></Alert>}
+            <ul className="mt-1 list-disc pl-5"><li>{hand.rep ?? 'This rep'} {hand.rep ? 'removed from routing' : 'was already deprovisioned'}</li><li>{(hand.accounts ?? []).length ? `${(hand.accounts ?? []).join(', ')} → ${hand.peer}` : 'No named accounts to move'}</li><li>{hand.meetings ?? 0} upcoming meetings → {hand.peer}, with one email to each invitee</li></ul></Alert>}
         </CardContent></Card>
 
     </div>
