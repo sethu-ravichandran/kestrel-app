@@ -55,7 +55,7 @@ export default function Admin({ st, reload, show }: { st: State; reload: () => P
     </Headline>}
     {show === 'team' && (() => { const live = st.reps.filter(r => r.active), off = st.reps.filter(r => !r.active), away = live.filter(r => r.away)
       const orphan = 0
-      return <Headline eyebrow="Team health" title={<><Big>{live.length - away.length} of {st.reps.length}</Big> reps are taking meetings. <Big>{orphan}</Big> accounts without an owner.</>} sub={off.length ? `${off.map(r => r.name).join(', ')} left via Okta. Their accounts and meetings were handed over automatically.` : 'Okta keeps this list in sync. When someone leaves, their accounts and meetings move to a teammate automatically.'}>
+      return <Headline eyebrow="Team health" title={<><Big>{live.length - away.length} of {live.length}</Big> reps are taking meetings. <Big>{orphan}</Big> accounts without an owner.</>} sub={off.length ? `${off.map(r => r.name).join(', ')} left via Okta. Their accounts and meetings were handed over automatically.` : 'Okta keeps this list in sync. When someone leaves, their accounts and meetings move to a teammate automatically.'}>
         <div className="grid grid-cols-2 gap-2">{['NA-West', 'NA-East', 'EMEA', 'APAC'].map(t => { const reps = st.reps.filter(r => r.terr === t)
           return <div key={t} className="rounded-xl bg-white/[.06] p-3"><p className="text-[12px] text-white/60">{t}</p>
             <div className="mt-2 flex gap-1.5">{reps.map(r => <span key={r.id} title={`${r.name}: ${!r.active ? 'deprovisioned' : r.away ? 'on leave' : 'available'}`} className={cn('size-3 rounded-full transition-colors duration-slow', !r.active ? 'bg-red-400/70' : r.away ? 'bg-amber-400' : 'bg-emerald-400')} />)}</div></div> })}

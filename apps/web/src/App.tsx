@@ -45,7 +45,7 @@ function Shell() {
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-[hsl(var(--navy))] text-white md:flex [background-image:radial-gradient(120%_60%_at_0%_100%,hsl(226_100%_50%/.22),transparent_60%)]">
       <div className="flex items-center gap-2 px-5 pb-2 pt-5"><span className="size-2 rounded-full bg-primary shadow-[0_0_12px_hsl(var(--primary))]" /><span className="text-[17px] font-semibold tracking-[-0.03em]">kestrel</span></div>
       <button className="mx-3 mb-2 mt-3 flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[.04] p-2 text-left transition-colors hover:bg-white/[.08]" aria-label="Switch workspace">
-        <div className="grid size-8 place-items-center rounded-lg bg-white text-[13px] font-bold text-[hsl(var(--navy))]">H</div>
+        <div className="grid size-8 place-items-center rounded-lg bg-[#ffffff] text-[13px] font-bold text-[hsl(var(--navy))]">H</div>
         <div className="min-w-0 flex-1"><p className="truncate text-[13px] font-semibold">Halden Group</p><p className="text-xs text-white/50">Enterprise · 900 seats</p></div>
         <ChevronsUpDown className="size-4 text-white/40" /></button>
       <nav className="flex flex-col gap-0.5 px-3">{NAV.map(n => { const on = n.v === page; const I = n.icon
