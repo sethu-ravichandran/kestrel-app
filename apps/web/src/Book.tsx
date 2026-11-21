@@ -66,7 +66,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
   const start = month.startOf('week'), cells = Array.from({ length: 42 }, (_, i) => start.plus({ days: i }))
   const daySlots = day ? byDay[day] || [] : []
 
-  const demoMenu = stage === 'intake' ? null : <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end">
+  const demoMenu = null && <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end">
     {demo && <div className="mb-2 w-64 rounded-lg border bg-white p-1.5 shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-150">
       <p className="px-2 py-1.5 text-xs text-muted-foreground">Demo scenarios</p>
       {PRESETS.map(p => <button key={p.label} onClick={() => preset(p)} className="block h-9 w-full rounded-md px-2 text-left text-[13px] transition-colors duration-fast hover:bg-muted focus-visible:bg-muted focus-visible:outline-none">{p.label}</button>)}
