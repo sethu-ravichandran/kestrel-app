@@ -46,6 +46,8 @@ export default function Admin({ st, reload, show }: { st: State; reload: () => P
   async function save(rules: typeof R, msg: string) { await api.rules(rules); toast(msg); refresh() }
   const move = (i: number, d: number) => { const j = i + d; if (j < 0 || j >= R.length) return; const n = R.slice(); [n[i], n[j]] = [n[j], n[i]]; save(n, 'Rule order saved') }
   const active = st.reps.filter(r => r.active)
+  const [ownerDomains, setOwnerDomains] = useState<string[]>([])
+  useEffect(() => { api.bookings().then(bs => setOwnerDomains([...new Set(bs.filter(b => b.why === 'owner').map(b => b.who.split('@')[1]))])) }, [st])
 
   return <div className="space-y-4">
     {show === 'routing' && sim && <Headline eyebrow="Routing quality" title={<>Right rep, first time: <Big>{sim.good}/{sim.total}</Big>, up from {sim.oldGood}/{sim.total}.</>} sub="Last week's bookings replayed through these rules. Change a rule below and watch this number move.">
@@ -54,7 +56,8 @@ export default function Admin({ st, reload, show }: { st: State; reload: () => P
         <div className="flex gap-1">{Array.from({ length: sim.total }, (_, i) => <div key={i} className={cn('h-7 flex-1 rounded-md transition-colors duration-slow', i < v ? c : 'bg-white/[.07]')} style={{ transitionDelay: i * 40 + 'ms' }} />)}</div></div>)}</div>
     </Headline>}
     {show === 'team' && (() => { const live = st.reps.filter(r => r.active), off = st.reps.filter(r => !r.active), away = live.filter(r => r.away)
-      const orphan = 0
+      const owned = new Set(live.flatMap(r => r.owns))
+      const orphan = new Set([...st.reps.flatMap(r => r.owns), ...ownerDomains].filter(d => !owned.has(d))).size
       return <Headline eyebrow="Team health" title={<><Big>{live.length - away.length} of {live.length}</Big> reps are taking meetings. <Big>{orphan}</Big> accounts without an owner.</>} sub={off.length ? `${off.map(r => r.name).join(', ')} left via Okta. Their accounts and meetings were handed over automatically.` : 'Okta keeps this list in sync. When someone leaves, their accounts and meetings move to a teammate automatically.'}>
         <div className="grid grid-cols-2 gap-2">{['NA-West', 'NA-East', 'EMEA', 'APAC'].map(t => { const reps = st.reps.filter(r => r.terr === t)
           return <div key={t} className="rounded-xl bg-white/[.06] p-3"><p className="text-[12px] text-white/60">{t}</p>

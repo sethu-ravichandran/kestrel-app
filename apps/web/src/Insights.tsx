@@ -24,7 +24,7 @@ export default function Insights({ st }: { st: State }) {
     ['Bookings · last 4 weeks', String(K.bookings30)],
     ['Right rep, first time', K.rightNow + '%', `was ${K.rightBefore}% with round robin`, true],
     ['Manual reassigns avoided', String(K.reassignsSaved), 'last 4 weeks'],
-    ['Reps active', `${st.reps.filter(r => r.active).length} / ${st.reps.length}`],
+    ['Reps taking meetings', `${st.reps.filter(r => r.active && !r.away).length} / ${st.reps.length}`],
   ]
   return <div className="space-y-4">
     <p className="text-xs text-muted-foreground">Illustrative 8-week history (smart routing switched on 4 weeks ago) combined with live bookings.</p>

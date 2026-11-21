@@ -51,7 +51,7 @@ export default function Bookings({ st }: { st: State }) {
 
     {rows ? <TerritoryCards st={st} rows={rows} /> : <Skeleton className="h-[116px]" />}
 
-    <div className={cn('grid items-start gap-4', open && 'xl:grid-cols-[1fr_340px]')}>
+    <div className={cn('grid items-start gap-4', open && '2xl:grid-cols-[1fr_340px]')}>
     <div className="min-w-0 overflow-hidden rounded-2xl border border-[hsl(var(--line))] bg-white shadow-[0_1px_2px_rgba(12,16,36,.04),0_8px_24px_-12px_rgba(12,16,36,.08)]">
       <div className="flex flex-wrap items-center gap-3 border-b px-4 py-3">
         <div className="flex rounded-full bg-[hsl(var(--muted))] p-1 text-[13px]">{(['confirmed', 'cancelled'] as const).map(t =>
