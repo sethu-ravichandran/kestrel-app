@@ -7,3 +7,4 @@ export type State = { reps: Rep[]; rules: Rule[]; buffer: boolean; locs: [string
 export type RouteRes = { rep: Rep | null; trace: Step[]; why: 'owner' | 'rules' | 'none'; slots: string[] }
 export type SimRow = { inv: Invitee; old: string; oldFit: boolean; neu: string; neuFit: boolean }
 export type Audit = { t: string; who: string; ev: string; d: string }
+export type Booking = { id: string; repId: string; who: string; start: string; tz: string; topic: string; why: 'owner' | 'rules'; status: 'confirmed' | 'cancelled' }

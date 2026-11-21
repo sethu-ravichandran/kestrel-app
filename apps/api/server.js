@@ -30,9 +30,14 @@ function seed() {
       { k: 'lang', on: true, t: 'Language → reps who speak it', d: 'Soft rule: dropped if nobody matches' },
     ],
     bookings: [
-      { id: 'BK-1', repId: 'ana', who: 'ops@bluecrest.com', start: '2026-11-25T18:00:00Z', tz: 'America/Los_Angeles' },
-      { id: 'BK-2', repId: 'ana', who: 'cto@bluecrest.com', start: '2026-11-27T17:00:00Z', tz: 'America/Los_Angeles' },
-      { id: 'BK-3', repId: 'lena', who: 'cfo@northfold.de', start: '2026-11-24T10:00:00Z', tz: 'Europe/Berlin' },
+      { id: 'BK-1', repId: 'ana', who: 'ops@bluecrest.com', start: '2026-11-25T18:00:00Z', tz: 'America/Los_Angeles', topic: 'general', why: 'owner', status: 'confirmed' },
+      { id: 'BK-2', repId: 'ana', who: 'cto@bluecrest.com', start: '2026-11-27T17:00:00Z', tz: 'America/Los_Angeles', topic: 'technical', why: 'owner', status: 'confirmed' },
+      { id: 'BK-3', repId: 'lena', who: 'cfo@northfold.de', start: '2026-11-24T10:00:00Z', tz: 'Europe/Berlin', topic: 'billing', why: 'owner', status: 'confirmed' },
+      { id: 'BK-4', repId: 'javi', who: 'it@ferrovia.es', start: '2026-11-24T14:00:00Z', tz: 'Europe/Madrid', topic: 'technical', why: 'rules', status: 'confirmed' },
+      { id: 'BK-5', repId: 'mei', who: 'ops@harbourline.sg', start: '2026-11-25T02:00:00Z', tz: 'Asia/Singapore', topic: 'general', why: 'owner', status: 'confirmed' },
+      { id: 'BK-6', repId: 'kofi', who: 'dev@acme.ca', start: '2026-11-26T15:00:00Z', tz: 'America/Toronto', topic: 'technical', why: 'rules', status: 'confirmed' },
+      { id: 'BK-7', repId: 'sam', who: 'ann@sfgrowth.com', start: '2026-11-30T19:00:00Z', tz: 'America/Los_Angeles', topic: 'technical', why: 'rules', status: 'confirmed' },
+      { id: 'BK-8', repId: 'ben', who: 'k.ito@pinecove.io', start: '2026-11-23T16:00:00Z', tz: 'America/New_York', topic: 'general', why: 'owner', status: 'cancelled' },
     ],
     audit: [
       { t: DateTime.now().minus({ days: 2 }).toISO(), who: 'okta-scim', ev: 'User provisioned', d: 'Sam Patel added to NA-West' },
@@ -83,7 +88,7 @@ function route(inv, advance = false) {
 function slots(r, invTz, n = 9) {
   const out = [];
   const buf = DB.buffer ? 10 : 0;
-  const taken = DB.bookings.filter((b) => b.repId === r.id).map((b) => DateTime.fromISO(b.start));
+  const taken = DB.bookings.filter((b) => b.repId === r.id && b.status !== 'cancelled').map((b) => DateTime.fromISO(b.start));
   let d = DEMO_NOW.setZone(r.tz).startOf('day').plus({ days: 1 });
   for (let guard = 0; out.length < n && guard < 30; guard++, d = d.plus({ days: 1 })) {
     if (d.weekday > 5) continue;
@@ -156,13 +161,20 @@ const server = http.createServer(async (req, res) => {
     if (p === '/api/bookings' && m === 'GET') return send(res, 200, DB.bookings);
     if (p === '/api/bookings' && m === 'POST') {
       const { inv, start } = await readBody(req);
-      const r = route(inv, true).rep;
+      const routed = route(inv, true); const r = routed.rep;
       if (!r) return send(res, 409, { error: 'No available rep' });
       if (!slots(r, inv.tz, 40).includes(DateTime.fromISO(start).toUTC().toISO())) return send(res, 409, { error: 'That time was just taken. Please pick another.' });
-      const b = { id: 'BK-' + (DB.bookings.length + 1), repId: r.id, who: inv.email, start, tz: inv.tz };
+      const b = { id: 'BK-' + (DB.bookings.length + 1), repId: r.id, who: inv.email, start, tz: inv.tz, topic: inv.topic, why: routed.why, status: 'confirmed' };
       DB.bookings.push(b);
       log('booking-page', 'Meeting booked', `${inv.email} → ${r.name} (${DateTime.fromISO(start).setZone(r.tz).toFormat('d LLL HH:mm')} ${r.tz})`);
       return send(res, 201, { booking: b, rep: r, buffer: DB.buffer });
+    }
+    let cm;
+    if ((cm = p.match(/^\/api\/bookings\/([\w-]+)$/)) && m === 'DELETE') {
+      const b = DB.bookings.find((x) => x.id === cm[1]); if (!b) return send(res, 404, { error: 'not found' });
+      b.status = 'cancelled'; const r = rep(b.repId);
+      log('ops@halden', 'Meeting cancelled', `${b.id} · ${b.who} with ${r ? r.name : b.repId}; slot released`);
+      return send(res, 200, b);
     }
     if (p === '/api/rules' && m === 'PUT') {
       const { rules } = await readBody(req);

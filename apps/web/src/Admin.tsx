@@ -82,7 +82,7 @@ export default function Admin({ st, reload }: { st: State; reload: () => Promise
         </CardContent></Card>
     </div>
 
-    <Card><CardHeader><CardTitle>Team</CardTitle></CardHeader><CardContent className="overflow-x-auto">
+    <Card id="team" className="scroll-mt-6"><CardHeader><CardTitle>Team</CardTitle></CardHeader><CardContent className="overflow-x-auto">
       <table className="w-full min-w-[640px] text-[13px]"><thead className="border-b border-border"><tr><Th>Rep</Th><Th>Territory</Th><Th>Skills</Th><Th>Languages</Th><Th>Owns</Th><Th>Status</Th></tr></thead>
         <tbody className="divide-y">{st.reps.map(r => <tr key={r.id} className={cn('transition-all hover:bg-muted/50', !r.active && 'opacity-50')}>
           <Td className="font-medium">{r.name}<p className="text-xs font-normal text-muted-foreground">{city(r.tz)}</p></Td><Td>{r.terr}</Td><Td>{r.skills.join(', ')}</Td><Td>{r.langs.join(', ')}</Td><Td>{r.owns.join(', ') || '–'}</Td>
@@ -99,7 +99,7 @@ export default function Admin({ st, reload }: { st: State; reload: () => Promise
             <ul className="mt-1 list-disc pl-5"><li>{hand.rep} removed from routing</li><li>{hand.accounts.length ? `${hand.accounts.join(', ')} → ${hand.peer}` : 'No named accounts to move'}</li><li>{hand.meetings} upcoming meetings → {hand.peer}, with one email to each invitee</li></ul></Alert>}
         </CardContent></Card>
 
-      <Card><CardHeader className="flex-row items-center justify-between space-y-0"><div><CardTitle>Audit log</CardTitle><CardDescription>For compliance reviews</CardDescription></div>
+      <Card id="audit" className="scroll-mt-6"><CardHeader className="flex-row items-center justify-between space-y-0"><div><CardTitle>Audit log</CardTitle><CardDescription>For compliance reviews</CardDescription></div>
         <Button variant="outline" size="sm" onClick={() => { location.href = '/api/audit.csv' }}><Download />Export CSV</Button></CardHeader>
         <CardContent className="max-h-[300px] overflow-y-auto"><ol className="divide-y divide-border">{audit.map((a, i) => <li key={a.t + i} className={cn('flex gap-3 py-2 text-[13px]', (!seen.current || !seen.current.has(a.t + a.ev + (audit.length - i))) && 'animate-fade-up')}>
           <span className="w-[92px] shrink-0 text-[11px] tabular-nums text-muted-foreground">{DateTime.fromISO(a.t).toFormat('d LLL HH:mm')}</span>

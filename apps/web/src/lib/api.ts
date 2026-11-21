@@ -1,5 +1,5 @@
-import type { Rep, Rule, Step, Invitee, State, RouteRes, SimRow, Audit } from '@kestrel/shared'
-export type { Rep, Rule, Step, Invitee, State, RouteRes, SimRow, Audit }
+import type { Booking, Rep, Rule, Step, Invitee, State, RouteRes, SimRow, Audit } from '@kestrel/shared'
+export type { Booking, Rep, Rule, Step, Invitee, State, RouteRes, SimRow, Audit }
 async function call<T>(p: string, method = 'GET', body?: unknown, headers: Record<string, string> = {}): Promise<T> {
   const r = await fetch(p, { method, headers: { 'Content-Type': 'application/json', ...headers }, body: body ? JSON.stringify(body) : undefined })
   const j = await r.json(); if (!r.ok) throw new Error(j.error || String(r.status)); return j
@@ -7,6 +7,8 @@ async function call<T>(p: string, method = 'GET', body?: unknown, headers: Recor
 export const api = {
   state: () => call<State>('/api/state'),
   route: (inv: Invitee) => call<RouteRes>('/api/route', 'POST', inv),
+  bookings: () => call<Booking[]>('/api/bookings'),
+  cancel: (id: string) => call<Booking>('/api/bookings/' + id, 'DELETE'),
   book: (inv: Invitee, start: string) => call<{ booking: { id: string; start: string }; rep: Rep; buffer: boolean }>('/api/bookings', 'POST', { inv, start }),
   rules: (rules: Rule[]) => call<Rule[]>('/api/rules', 'PUT', { rules }),
   leave: (id: string, away: boolean) => call<Rep>('/api/reps/' + id, 'PATCH', { away }),
