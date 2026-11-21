@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CalendarDays, ChevronsUpDown, Clock4, Copy, ExternalLink, GitBranch, LayoutList, RotateCcw, ScrollText, Users } from 'lucide-react'
+import { CalendarDays, ChevronsUpDown, Copy, ExternalLink, GitBranch, LayoutList, RotateCcw, ScrollText, Users } from 'lucide-react'
 import { api, type State } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/input'
@@ -41,7 +41,6 @@ function Shell() {
         return <button key={n.v} onClick={() => nav(n.v)} className={cn('flex h-9 items-center gap-2.5 rounded-md px-2.5 text-[13px] transition-colors duration-fast', on ? 'bg-muted font-medium text-foreground' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground')}>
           <I className="size-4" />{n.label}</button> })}</nav>
       <div className="mt-auto space-y-0.5 p-3">
-        <a href="/tz.html" className="flex h-9 items-center gap-2.5 rounded-md px-2.5 text-[13px] text-muted-foreground hover:bg-muted/60 hover:text-foreground"><Clock4 className="size-4" />Time-zone lab</a>
         <button onClick={async () => { await api.reset(); await reload(); setK(k + 1); toast('Demo data reset') }} className="flex h-9 w-full items-center gap-2.5 rounded-md px-2.5 text-[13px] text-muted-foreground hover:bg-muted/60 hover:text-foreground"><RotateCcw className="size-4" />Reset demo data</button>
         <div className="mt-2 flex items-center gap-2.5 border-t px-2.5 pt-3"><div className="grid size-7 place-items-center rounded-full bg-blue-600 text-[11px] font-semibold text-white">MR</div><div className="text-xs"><p className="font-medium">Maya Raman</p><p className="text-muted-foreground">Admin</p></div></div>
       </div>
