@@ -3,7 +3,9 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { DateTime } = require('luxon');
+const zlib = require('zlib');
+const crypto = require('crypto');
+const { DateTime, IANAZone } = require('luxon');
 
 const PORT = process.env.PORT || 5178;
 const SCIM_TOKEN = process.env.SCIM_TOKEN || 'demo-okta-token';
@@ -23,7 +25,14 @@ const LOCS = [
 
 const log = (who, ev, d) => store.appendAudit({ t: DateTime.now().toISO(), who, ev, d });
 const domain = (e) => (String(e).split('@')[1] || '').toLowerCase();
-const rep = (id) => DB.reps.find((r) => r.id === id);
+// id → rep index, rebuilt only when the store version changes
+let repIdx = { v: -1, map: new Map() };
+const rep = (id) => {
+  if (repIdx.v !== store.version()) repIdx = { v: store.version(), map: new Map(DB.reps.map((r) => [r.id, r])) };
+  return repIdx.map.get(id);
+};
+// memoize pure functions of store state, keyed on store.version()
+const memo = (fn) => { let v = -1, val; return () => (v === store.version() ? val : ((v = store.version()), (val = fn()))); };
 
 // ---------- routing engine ----------
 // sim: optional local round-robin counter so the simulator never touches real state
@@ -94,6 +103,7 @@ function deprovision(r) {
   if (!r.active) return { already: true };
   store.updateRep(r.id, { active: false });
   const peer = DB.reps.find((x) => x !== r && x.active && x.terr === r.terr) || DB.reps.find((x) => x !== r && x.active);
+  if (!peer) { store.updateRep(r.id, { active: true }); return { error: 'no active peer to hand over to' }; }
   const owns = r.owns.slice();
   store.updateRep(r.id, { owns: [] });
   store.updateRep(peer.id, { owns: [...peer.owns, ...owns] });
@@ -133,26 +143,77 @@ function insights() {
 const scimUser = (r) => ({ schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'], id: r.id, userName: r.email, displayName: r.name, active: r.active });
 
 // ---------- http ----------
-function send(res, code, body, type = 'application/json') {
-  res.writeHead(code, { 'Content-Type': type, 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS' });
-  res.end(type === 'application/json' ? JSON.stringify(body) : body);
+const MAX_BODY = 100 * 1024;
+const BASE_HEADERS = {
+  'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'Content-Type, Authorization, If-None-Match',
+  'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS', 'Access-Control-Expose-Headers': 'ETag, X-Request-Id',
+  'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',
+};
+class HttpError extends Error { constructor(code, msg) { super(msg); this.code = code; } }
+
+function send(res, code, body, type = 'application/json', extra = {}) {
+  const req = res.req;
+  let buf = type === 'application/json' ? Buffer.from(JSON.stringify(body)) : Buffer.isBuffer(body) ? body : Buffer.from(String(body));
+  const headers = { ...BASE_HEADERS, 'Content-Type': type.includes('charset') || !/json|text|javascript|svg/.test(type) ? type : type + '; charset=utf-8', ...extra };
+  if (req && (req.method === 'GET' || req.method === 'HEAD') && code === 200) {
+    const etag = headers.ETag || '"' + crypto.createHash('sha1').update(buf).digest('base64url').slice(0, 22) + '"';
+    headers.ETag = etag;
+    if (!headers['Cache-Control']) headers['Cache-Control'] = 'no-cache';
+    if (req.headers['if-none-match'] === etag) { res.writeHead(304, headers); return res.end(); }
+  }
+  const ae = (req && req.headers['accept-encoding']) || '';
+  if (buf.length > 1024 && /json|text|javascript|svg|css|csv/.test(type)) {
+    headers.Vary = 'Accept-Encoding';
+    if (/\bbr\b/.test(ae)) { buf = zlib.brotliCompressSync(buf, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 5 } }); headers['Content-Encoding'] = 'br'; }
+    else if (/\bgzip\b/.test(ae)) { buf = zlib.gzipSync(buf); headers['Content-Encoding'] = 'gzip'; }
+  }
+  if (code !== 204) headers['Content-Length'] = buf.length;
+  res.writeHead(code, headers);
+  res.end(code === 204 ? undefined : buf);
 }
-const readBody = (req) => new Promise((ok) => { let s = ''; req.on('data', (c) => (s += c)); req.on('end', () => { try { ok(s ? JSON.parse(s) : {}); } catch { ok({}); } }); });
+// body size limit → 413, malformed JSON → 400 (previously silently became {})
+const readBody = (req) => new Promise((ok, fail) => {
+  if (req.body !== undefined && typeof req.body === 'object') return ok(req.body || {}); // pre-parsed (serverless)
+  const chunks = []; let n = 0, done = false;
+  req.on('data', (c) => { if (done) return; n += c.length; if (n > MAX_BODY) { done = true; fail(new HttpError(413, 'Request body too large')); req.resume(); } else chunks.push(c); });
+  req.on('end', () => { if (done) return; const s = Buffer.concat(chunks).toString('utf8'); try { const v = s ? JSON.parse(s) : {}; ok(v && typeof v === 'object' ? v : {}); } catch { fail(new HttpError(400, 'Invalid JSON body')); } });
+  req.on('error', fail);
+});
+const isStr = (v) => typeof v === 'string' && v.length > 0 && v.length < 320;
+function validInvitee(inv) {
+  if (!inv || typeof inv !== 'object') throw new HttpError(400, 'invitee is required');
+  if (!isStr(inv.email) || !inv.email.includes('@')) throw new HttpError(400, 'valid email is required');
+  if (!isStr(inv.tz) || !IANAZone.isValidZone(inv.tz)) throw new HttpError(400, 'valid IANA tz is required');
+  return inv;
+}
+const safeEq = (a, b) => { const x = Buffer.from(String(a || '')), y = Buffer.from(String(b)); return x.length === y.length && crypto.timingSafeEqual(x, y); };
+const memoInsights = memo(insights), memoSimulate = memo(simulate);
+const PUBLIC = path.join(__dirname, 'public');
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.map': 'application/json', '.txt': 'text/plain' };
 
 async function handler(req, res) {
-  const url = new URL(req.url, 'http://x');
+  const t0 = process.hrtime.bigint();
+  const rid = String(req.headers['x-request-id'] || crypto.randomUUID()).slice(0, 64);
+  res.setHeader('X-Request-Id', rid);
+  res.req = res.req || req;
+  res.on('finish', () => { if (process.env.ACCESS_LOG !== '0') console.log(JSON.stringify({ rid, m: req.method, p: req.url, s: res.statusCode, ms: Number(process.hrtime.bigint() - t0) / 1e6 })); });
+  let url;
+  try { url = new URL(req.url, 'http://x'); } catch { return send(res, 400, { error: 'bad url' }); }
   const p = url.pathname, m = req.method;
   if (m === 'OPTIONS') return send(res, 204, '');
   try {
     if (p === '/api/state' && m === 'GET') return send(res, 200, { reps: DB.reps, rules: DB.rules, buffer: DB.buffer, locs: LOCS, now: DEMO_NOW.toISO() });
     if (p === '/api/route' && m === 'POST') {
-      const inv = await readBody(req);
+      const inv = validInvitee(await readBody(req));
       const r = route(inv);
       return send(res, 200, { ...r, slots: r.rep ? slots(r.rep, inv.tz, 60) : [] });
     }
     if (p === '/api/bookings' && m === 'GET') return send(res, 200, store.listBookings());
     if (p === '/api/bookings' && m === 'POST') {
       const { inv, start } = await readBody(req);
+      validInvitee(inv);
+      if (!isStr(start) || !DateTime.fromISO(start).isValid) throw new HttpError(400, 'valid ISO start is required');
+      // check + save run synchronously (no await in between), so the double-booking guard is atomic in this process
       const routed = route(inv, true); const r = routed.rep;
       if (!r) return send(res, 409, { error: 'No available rep' });
       if (!slots(r, inv.tz, 40).includes(DateTime.fromISO(start).toUTC().toISO())) return send(res, 409, { error: 'That time was just taken. Please pick another.' });
@@ -186,8 +247,8 @@ async function handler(req, res) {
       log('ops@halden', DB.buffer ? 'Buffer turned on' : 'Buffer turned off', '10 min after every meeting · all reps');
       return send(res, 200, { buffer: DB.buffer });
     }
-    if (p === '/api/insights' && m === 'GET') return send(res, 200, insights());
-    if (p === '/api/simulate' && m === 'GET') return send(res, 200, simulate());
+    if (p === '/api/insights' && m === 'GET') return send(res, 200, memoInsights());
+    if (p === '/api/simulate' && m === 'GET') return send(res, 200, memoSimulate());
     if (p === '/api/audit' && m === 'GET') return send(res, 200, store.listAudit());
     if (p === '/api/audit.csv' && m === 'GET') {
       const csv = 'time,actor,event,detail\n' + DB.audit.map((a) => [a.t, a.who, a.ev, a.d].map((v) => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
@@ -198,7 +259,7 @@ async function handler(req, res) {
 
     // SCIM 2.0 (what Okta calls)
     if (p.startsWith('/scim/v2/')) {
-      if (req.headers.authorization !== 'Bearer ' + SCIM_TOKEN) return send(res, 401, { schemas: ['urn:ietf:params:scim:api:messages:2.0:Error'], status: '401', detail: 'Bad token' });
+      if (!safeEq(req.headers.authorization, 'Bearer ' + SCIM_TOKEN)) return send(res, 401, { schemas: ['urn:ietf:params:scim:api:messages:2.0:Error'], status: '401', detail: 'Bad token' });
       if (p === '/scim/v2/Users' && m === 'GET') return send(res, 200, { schemas: ['urn:ietf:params:scim:api:messages:2.0:ListResponse'], totalResults: DB.reps.length, Resources: DB.reps.map(scimUser) });
       if ((mm = p.match(/^\/scim\/v2\/Users\/(\w+)$/))) {
         const r = rep(mm[1]); if (!r) return send(res, 404, { status: '404' });
@@ -207,19 +268,39 @@ async function handler(req, res) {
           const b = await readBody(req);
           const off = (b.Operations || []).some((o) => o.value && o.value.active === false || (o.path === 'active' && o.value === false));
           const result = off ? deprovision(r) : {};
+          if (result.error) return send(res, 409, { schemas: ['urn:ietf:params:scim:api:messages:2.0:Error'], status: '409', detail: result.error });
           return send(res, 200, { ...scimUser(r), 'urn:kestrel:handover': result });
         }
       }
     }
 
-    // static frontend
-    const file = path.join(__dirname, 'public', p === '/' ? 'index.html' : path.normalize(p).replace(/^(\.\.[/\\])+/, ''));
-    if (file.startsWith(path.join(__dirname, 'public')) && fs.existsSync(file) && fs.statSync(file).isFile()) {
-      const type = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' }[path.extname(file)] || 'application/octet-stream';
-      return send(res, 200, fs.readFileSync(file), type);
+    if (p.startsWith('/api/') || p.startsWith('/scim/')) return send(res, 404, { error: 'not found' });
+
+    // static frontend (GET/HEAD only); resolve + prefix check blocks path traversal
+    if (m === 'GET' || m === 'HEAD') {
+      let rel; try { rel = decodeURIComponent(p); } catch { return send(res, 400, { error: 'bad path' }); }
+      const file = path.resolve(PUBLIC, '.' + (rel === '/' ? '/index.html' : rel));
+      if (file.startsWith(PUBLIC + path.sep)) {
+        let st; try { st = fs.statSync(file); } catch { st = null; }
+        if (st && st.isFile()) {
+          const ext = path.extname(file);
+          const cache = rel.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache';
+          return send(res, 200, fs.readFileSync(file), MIME[ext] || 'application/octet-stream', { 'Cache-Control': cache, ETag: `W/"${st.size.toString(16)}-${st.mtimeMs.toString(16)}"` });
+        }
+      }
     }
     send(res, 404, { error: 'not found' });
-  } catch (e) { console.error(e); send(res, 500, { error: e.message }); }
+  } catch (e) {
+    if (e instanceof HttpError) return send(res, e.code, { error: e.message });
+    console.error(e); send(res, 500, { error: 'internal error' });
+  }
 }
 module.exports = handler;
-if (require.main === module) http.createServer(handler).listen(PORT, () => console.log(`Kestrel Smart Routing on http://localhost:${PORT}`));
+module.exports.handler = handler;
+if (require.main === module) {
+  const server = http.createServer(handler);
+  server.requestTimeout = 15000; server.headersTimeout = 10000;
+  server.listen(PORT, () => console.log(`Kestrel Smart Routing on http://localhost:${PORT}`));
+  const stop = () => { console.log('shutting down'); server.close(() => process.exit(0)); setTimeout(() => process.exit(0), 3000).unref(); };
+  process.on('SIGTERM', stop); process.on('SIGINT', stop);
+}

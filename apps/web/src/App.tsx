@@ -52,11 +52,6 @@ function Shell() {
         return <button key={n.v} onClick={() => nav(n.v)} className={cn('flex h-9 items-center gap-2.5 rounded-lg px-3 text-[13px] transition-colors duration-fast', on ? 'bg-primary/20 font-medium text-white shadow-[inset_2px_0_0_hsl(var(--primary))]' : 'text-white/60 hover:bg-white/[.06] hover:text-white')}>
           <I className="size-4" />{n.label}</button> })}</nav>
       <div className="mt-auto space-y-0.5 p-3">
-        <div role="radiogroup" aria-label="Theme" className="relative mx-3 mb-1 grid w-[108px] grid-cols-3 rounded-full border border-white/10 bg-white/[.04] p-1">
-          <span aria-hidden className="absolute inset-y-1 left-1 w-[calc((100%-8px)/3)] rounded-full bg-white/15 transition-transform duration-base ease-out" style={{ transform: `translateX(${['light', 'dark', 'system'].indexOf(theme) * 100}%)` }} />
-          {([['light', Sun, 'Light'], ['dark', Moon, 'Dark'], ['system', Monitor, 'System']] as const).map(([v, I, l]) => <button key={v} role="radio" aria-checked={theme === v} aria-label={l} title={l} onClick={() => setTheme(v)}
-            className={cn('relative z-10 flex h-7 items-center justify-center rounded-full transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary', theme === v ? 'text-white' : 'text-white/45 hover:text-white/80')}><I className="size-3.5" /></button>)}
-        </div>
         <button onClick={async () => { await api.reset(); await reload(); setK(k + 1); toast('Demo data reset') }} className="flex h-9 w-full items-center gap-2.5 rounded-lg px-3 text-[13px] text-white/50 hover:bg-white/[.06] hover:text-white"><RotateCcw className="size-4" />Reset demo data</button>
         <div className="mt-2 flex items-center gap-2.5 border-t border-white/10 px-3 pt-3"><div className="grid size-7 place-items-center rounded-full bg-blue-600 text-[11px] font-semibold text-white">MR</div><div className="text-xs"><p className="font-medium">Maya Raman</p><p className="text-white/50">Admin</p></div></div>
       </div>
@@ -68,11 +63,19 @@ function Shell() {
       <header className="border-b border-[hsl(var(--line))] bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-6 py-5">
           <div><h1 className="text-[22px] font-semibold tracking-[-0.03em]">{TITLE[page][0]}</h1><p className="mt-0.5 text-[13px] text-muted-foreground">{TITLE[page][1]}</p></div>
-          {page === 'page' && <div className="ml-auto flex items-center gap-2">
+          {page === 'page' && <div className="flex items-center gap-2">
             <div className="hidden h-9 items-center rounded-md border bg-muted/50 px-3 text-[13px] tabular-nums text-muted-foreground sm:flex">{link.replace(/^https?:\/\//, '')}</div>
             <Button variant="outline" onClick={() => { navigator.clipboard?.writeText(link).catch(() => {}); toast('Booking link copied') }}><Copy />Copy link</Button>
             <Button variant="outline" size="icon" aria-label="Open in new tab" onClick={() => window.open('/', '_blank')}><ExternalLink /></Button></div>}
-          {page === 'bookings' && <Button className="ml-auto" onClick={() => setPage('page')}><CalendarDays />New booking</Button>}
+          <div className="order-last ml-auto sm:order-none sm:ml-0" />
+          {page === 'bookings' && <Button className="" onClick={() => setPage('page')}><CalendarDays />New booking</Button>}
+  <div className="ml-auto flex items-center gap-3">
+            <div role="radiogroup" aria-label="Theme" className="relative grid w-[100px] shrink-0 grid-cols-3 rounded-full border border-[hsl(var(--line))] bg-[hsl(var(--muted))] p-1">
+              <span aria-hidden className="absolute inset-y-1 left-1 w-[calc((100%-8px)/3)] rounded-full bg-[hsl(var(--card))] shadow-sm transition-transform duration-base ease-out" style={{ transform: `translateX(${['light', 'dark', 'system'].indexOf(theme) * 100}%)` }} />
+              {([['light', Sun, 'Light'], ['dark', Moon, 'Dark'], ['system', Monitor, 'System']] as const).map(([v, I, l]) => <button key={v} role="radio" aria-checked={theme === v} aria-label={l} title={l} onClick={() => setTheme(v)}
+                className={cn('relative z-10 flex h-6 items-center justify-center rounded-full transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary', theme === v ? 'text-foreground' : 'text-muted-foreground hover:text-foreground')}><I className="size-3.5" /></button>)}
+            </div>
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-6 py-8">

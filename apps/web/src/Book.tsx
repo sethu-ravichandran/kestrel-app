@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Input, Label, NativeSelect, Skeleton } from '@/components/ui/input'
 import { useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
+import Matching from './Matching'
+import { REP_COLOR } from './Team'
 
 const PRESETS = [
   { label: 'Existing customer (Bluecrest)', email: 'j.moreno@bluecrest.com', loc: 0, topic: 'general', lang: 'English', away: false },
@@ -17,11 +19,11 @@ const PRESETS = [
 const TOPIC: Record<string, string> = { general: 'Intro & pricing', technical: 'Technical deep-dive', billing: 'Billing question' }
 const initials = (n: string) => n.split(' ').map(x => x[0]).join('')
 const first = (n: string) => n.split(' ')[0]
-const Logo = () => <div className="flex items-center gap-2"><div className="grid size-8 place-items-center rounded-md bg-[hsl(var(--navy))] text-[13px] font-bold text-white">H</div><span className="font-semibold">Halden Group</span></div>
+const Logo = () => <div className="flex items-center gap-2"><div className="grid size-8 place-items-center rounded-lg bg-primary text-[13px] font-bold text-white">H</div><span className="font-semibold">Halden Group</span></div>
 
 export default function Book({ st, reload }: { st: State; reload: () => void }) {
   const toast = useToast()
-  const [stage, setStage] = useState<'intake' | 'pick' | 'done'>('intake')
+  const [stage, setStage] = useState<'intake' | 'matching' | 'pick' | 'done'>('intake')
   const [f, setF] = useState({ email: PRESETS[0].email, loc: 0, topic: 'general', lang: 'English' })
   const [res, setRes] = useState<RouteRes | null>(null)
   const [why, setWhy] = useState(false)
@@ -43,8 +45,8 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
   const byDay = useMemo(() => { const m: Record<string, string[]> = {}; (res?.slots || []).forEach(s => { const k = DateTime.fromISO(s).setZone(inv.tz).toISODate()!; (m[k] ||= []).push(s) }); return m }, [res, inv.tz])
 
   async function go(i = inv) {
-    setStage('pick'); setRes(null); setErr(''); setSel(null); setWhy(false)
-    const [r] = await Promise.all([api.route(i), new Promise(ok => setTimeout(ok, 350))]) as [RouteRes, unknown]
+    setStage('matching'); setRes(null); setErr(''); setSel(null); setWhy(false)
+    const r = await api.route(i)
     setRes(r); const firstDay = r.slots[0] ? DateTime.fromISO(r.slots[0]).setZone(i.tz) : null
     setDay(firstDay?.toISODate() ?? null); if (firstDay) setMonth(firstDay.startOf('month'))
   }
@@ -64,19 +66,32 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
   const start = month.startOf('week'), cells = Array.from({ length: 42 }, (_, i) => start.plus({ days: i }))
   const daySlots = day ? byDay[day] || [] : []
 
-  const demoMenu = <div className="fixed bottom-4 left-4 z-40">
+  const demoMenu = stage === 'intake' ? null : <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end">
     {demo && <div className="mb-2 w-64 rounded-lg border bg-white p-1.5 shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-150">
       <p className="px-2 py-1.5 text-xs text-muted-foreground">Demo scenarios</p>
       {PRESETS.map(p => <button key={p.label} onClick={() => preset(p)} className="block h-9 w-full rounded-md px-2 text-left text-[13px] transition-colors duration-fast hover:bg-muted focus-visible:bg-muted focus-visible:outline-none">{p.label}</button>)}
     </div>}
-    <Button variant="outline" size="sm" className="shadow-sm" onClick={() => setDemo(!demo)}>Demo scenarios</Button>
+    <Button variant="outline" size="sm" className="shadow-lg" onClick={() => setDemo(!demo)}>Try another scenario</Button>
   </div>
 
-  if (stage === 'intake') return <>{demoMenu}
-    <div className="mx-auto max-w-md rounded-2xl border border-[hsl(var(--line))] bg-white p-6 shadow-sm animate-fade-up">
+  if (stage === 'matching') return <>{demoMenu}<Matching res={res} onDone={() => setStage('pick')} /></>
+
+  if (stage === 'intake') return <div className="mx-auto grid max-w-5xl items-stretch gap-5 lg:grid-cols-[1.15fr_1fr]">
+    <section className="relative overflow-hidden rounded-2xl bg-[hsl(var(--navy))] p-7 text-white shadow-[0_12px_40px_-16px_rgba(12,16,36,.5)] animate-fade-up [background-image:radial-gradient(90%_120%_at_0%_0%,hsl(226_100%_55%/.35),transparent_60%)]">
+      <p className="text-xs font-medium uppercase tracking-[0.12em] text-white/50">Halden Group · Book a call</p>
+      <h2 className="mt-3 text-[30px] font-semibold leading-[1.1] tracking-[-0.03em]">Meet the right person,<br /><span className="text-[hsl(226_100%_72%)]">first time.</span></h2>
+      <p className="mt-3 max-w-[40ch] text-[13.5px] text-white/65">Tell us who you are. We'll match you with the person who already knows your account, works your hours, and speaks your language.</p>
+      <div className="mt-6 flex items-center gap-3"><div className="flex -space-x-2">{st.reps.filter(r => r.active).map((r, i) => <span key={r.id} style={{ animationDelay: i * 50 + 'ms' }} className={cn('grid size-9 place-items-center rounded-full text-[11px] font-semibold ring-2 ring-[hsl(var(--navy))] animate-in zoom-in-75 fade-in duration-300 fill-mode-both', REP_COLOR[r.id])}>{r.name.split(' ').map(x => x[0]).join('')}</span>)}</div>
+        <span className="text-[12px] text-white/60">{st.reps.filter(r => r.active && !r.away).length} specialists · 4 regions</span></div>
+      <ol className="mt-6 grid grid-cols-2 gap-2">{['Your account owner', 'Your region & hours', 'The right expertise', 'Your language'].map((t, i) => <li key={t} className="flex items-center gap-2 rounded-xl bg-white/[.06] px-3 py-2.5 text-[12.5px] animate-fade-up" style={{ animationDelay: 150 + i * 60 + 'ms' }}>
+        <span className="grid size-5 place-items-center rounded-full bg-primary text-[10px] font-semibold">{i + 1}</span>{t}</li>)}</ol>
+      <div className="mt-6 border-t border-white/10 pt-4"><p className="mb-2 text-[11px] font-medium uppercase tracking-[0.1em] text-white/45">Demo scenarios</p>
+        <div className="flex flex-wrap gap-1.5">{PRESETS.map(p => <button key={p.label} onClick={() => preset(p)} className="rounded-full border border-white/15 px-3 py-1.5 text-[12px] text-white/80 transition-all duration-fast hover:border-white/40 hover:bg-white/10 hover:text-white active:scale-[.97]">{p.label}</button>)}</div></div>
+    </section>
+    <div className="rounded-2xl border border-[hsl(var(--line))] bg-[hsl(var(--card))] p-7 shadow-sm animate-fade-up [animation-delay:80ms]">
       <Logo />
-      <h2 className="mt-5 text-lg font-semibold">Book a call</h2>
-      <p className="mt-1 text-[13px] text-muted-foreground">A few details so we can connect you with the right person.</p>
+      <h2 className="mt-5 text-lg font-semibold">Your details</h2>
+      <p className="mt-1 text-[13px] text-muted-foreground">Takes 20 seconds. Then pick a time that works for both of you.</p>
       <form className="mt-5 space-y-4" onSubmit={e => { e.preventDefault(); go() }}>
         <div className="space-y-1.5"><Label htmlFor="em">Work email</Label><Input id="em" type="email" required value={f.email} onChange={e => setF({ ...f, email: e.target.value })} /></div>
         <div className="space-y-1.5"><Label htmlFor="lo">Location</Label><NativeSelect id="lo" value={f.loc} onChange={e => setF({ ...f, loc: +e.target.value })}>{st.locs.map((l, i) => <option key={l[0]} value={i}>{l[0]}</option>)}</NativeSelect></div>
@@ -84,9 +99,10 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
           <div className="space-y-1.5"><Label htmlFor="to">Topic</Label><NativeSelect id="to" value={f.topic} onChange={e => setF({ ...f, topic: e.target.value })}>{Object.entries(TOPIC).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</NativeSelect></div>
           <div className="space-y-1.5"><Label htmlFor="la">Language</Label><NativeSelect id="la" value={f.lang} onChange={e => setF({ ...f, lang: e.target.value })}>{['English', 'Spanish', 'French', 'German'].map(x => <option key={x}>{x}</option>)}</NativeSelect></div>
         </div>
-        <Button type="submit" className="w-full">Continue</Button>
+        <Button type="submit" className="h-10 w-full">Find my person</Button>
       </form>
-    </div></>
+    </div>
+  </div>
 
   if (stage === 'done' && done && rep) { const s = DateTime.fromISO(done.start); return <>{demoMenu}
     <div className="mx-auto max-w-lg rounded-2xl border border-[hsl(var(--line))] bg-white p-8 text-center shadow-sm animate-fade-up">

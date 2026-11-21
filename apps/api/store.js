@@ -29,21 +29,25 @@ function loadSeed() {
  *   setBuffer(on)              → boolean
  *   nextRoundRobin()           → number (atomic counter in a real DB)
  *   reset()                    → state re-seeded from fixture
+ *   version()                  → number, bumped on every write (cache key for derived data / ETags)
  */
 function createMemoryStore() {
   let state = loadSeed();
+  let ver = 1;
+  const w = (fn) => (...a) => { ver++; return fn(...a); };
   return {
+    version: () => ver,
     getState: () => state,
     listBookings: () => state.bookings,
-    saveBooking: (b) => { state.bookings.push(b); return b; },
-    updateBooking: (id, patch) => { const b = state.bookings.find((x) => x.id === id); if (b) Object.assign(b, patch); return b || null; },
-    appendAudit: (e) => { state.audit.unshift(e); },
+    saveBooking: w((b) => { state.bookings.push(b); return b; }),
+    updateBooking: w((id, patch) => { const b = state.bookings.find((x) => x.id === id); if (b) Object.assign(b, patch); return b || null; }),
+    appendAudit: w((e) => { state.audit.unshift(e); }),
     listAudit: () => state.audit,
-    saveRules: (rules) => (state.rules = rules),
-    updateRep: (id, patch) => { const r = state.reps.find((x) => x.id === id); if (r) Object.assign(r, patch); return r || null; },
-    setBuffer: (on) => (state.buffer = !!on),
-    nextRoundRobin: () => state.rrPtr++,
-    reset: () => (state = loadSeed()),
+    saveRules: w((rules) => (state.rules = rules)),
+    updateRep: w((id, patch) => { const r = state.reps.find((x) => x.id === id); if (r) Object.assign(r, patch); return r || null; }),
+    setBuffer: w((on) => (state.buffer = !!on)),
+    nextRoundRobin: w(() => state.rrPtr++),
+    reset: w(() => (state = loadSeed())),
   };
 }
 
