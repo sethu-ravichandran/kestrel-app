@@ -21,4 +21,9 @@ npm run dev      # API + Vite dev server with proxy
 SCIM: `curl -X PATCH -H "Authorization: Bearer demo-okta-token" -d '{"Operations":[{"op":"replace","value":{"active":false}}]}' localhost:5178/scim/v2/Users/ana`
 
 ## Persistence (deliberate trade-off)
-State is in memory, seeded from `apps/api/data/seed.json` on every boot and reset, so the demo always starts from a known state. The routing engine only talks to `store.js` (`{ state, reset }`). For production, implement that interface on Postgres or Redis (e.g. Vercel KV) and nothing else changes. On serverless hosts each cold start re-seeds, which is fine for a demo and is exactly the gap a real store closes.
+**In-memory by design for a 2-hour prototype. Persistence is behind an interface, and `apps/api/store.js` is the one file you'd change.**
+
+- `apps/api/data/seed.json`: fixture loaded on every boot and on `POST /api/reset`, so the demo always starts from a known state.
+- `apps/api/store.js`: the storage interface (`getState`, `listBookings`, `saveBooking`, `updateBooking`, `appendAudit`, `listAudit`, `saveRules`, `updateRep`, `setBuffer`, `nextRoundRobin`, `reset`). Every write in `server.js` goes through it; the routing engine only reads.
+- Production: implement the same interface on Postgres (bookings, reps, rules, audit tables) or Redis / Vercel KV, and make `nextRoundRobin` an atomic counter. Routing logic, API and UI don't change.
+- On serverless hosts each cold start re-seeds. That's acceptable for a demo, and it's exactly the gap a real store closes.

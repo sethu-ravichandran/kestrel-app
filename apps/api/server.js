@@ -11,7 +11,8 @@ const DEMO_NOW = DateTime.fromISO('2026-11-23T09:00', { zone: 'Europe/Berlin' })
 
 // ---------- storage (see store.js: in-memory now, swappable for Postgres/Redis) ----------
 const store = require('./store').createMemoryStore();
-let DB = store.state;
+// read-only view for the routing engine; always points at the store's current state
+const DB = new Proxy({}, { get: (_, k) => store.getState()[k] });
 
 const LOCS = [
   ['Seattle, US', 'America/Los_Angeles', 'NA-West'], ['San Francisco, US', 'America/Los_Angeles', 'NA-West'],
@@ -20,12 +21,13 @@ const LOCS = [
   ['Singapore', 'Asia/Singapore', 'APAC'], ['Sydney, AU', 'Australia/Sydney', 'APAC'],
 ];
 
-const log = (who, ev, d) => DB.audit.unshift({ t: DateTime.now().toISO(), who, ev, d });
+const log = (who, ev, d) => store.appendAudit({ t: DateTime.now().toISO(), who, ev, d });
 const domain = (e) => (String(e).split('@')[1] || '').toLowerCase();
 const rep = (id) => DB.reps.find((r) => r.id === id);
 
 // ---------- routing engine ----------
-function route(inv, advance = false) {
+// sim: optional local round-robin counter so the simulator never touches real state
+function route(inv, advance = false, sim = null) {
   const trace = [];
   let pool = DB.reps.filter((r) => r.active && !r.away);
   for (const R of DB.rules) {
@@ -43,8 +45,8 @@ function route(inv, advance = false) {
     else trace.push({ t: R.t, r: 'No match, rule relaxed', s: 'warn' });
   }
   if (!pool.length) return { rep: null, trace, why: 'none' };
-  const idx = DB.rrPtr % pool.length;
-  if (advance) DB.rrPtr++;
+  const idx = (sim ? sim.n++ : DB.rrPtr) % pool.length;
+  if (advance && !sim) store.nextRoundRobin();
   const r = pool[idx];
   trace.push({ t: 'Round robin within the remaining group', r: `${r.name} (next in line of ${pool.length})`, s: 'ok' });
   return { rep: r, trace, why: 'rules' };
@@ -73,30 +75,30 @@ function slots(r, invTz, n = 9) {
 function simulate() {
   const T = [['k.ito@pinecove.io', 'New York, US', 'general', 'English'], ['m.lee@gmail.com', 'Seattle, US', 'general', 'English'], ['ops@ferrovia.es', 'Madrid, ES', 'technical', 'Spanish'], ['cfo@northfold.de', 'Berlin, DE', 'billing', 'German'], ['it@harbourline.sg', 'Singapore', 'technical', 'English'], ['dev@acme.ca', 'Toronto, CA', 'technical', 'French'], ['p.ng@tallow.com.au', 'Sydney, AU', 'general', 'English'], ['ann@sfgrowth.com', 'San Francisco, US', 'technical', 'English']];
   const live = DB.reps.filter((r) => r.active);
-  const saved = DB.rrPtr; DB.rrPtr = 0;
+  const sim = { n: 0 };
   let oldGood = 0, good = 0;
   const rows = T.map((t, i) => {
     const L = LOCS.find((l) => l[0] === t[1]);
     const inv = { email: t[0], loc: t[1], tz: L[1], terr: L[2], topic: t[2], lang: t[3] };
     const old = live[i % live.length];
-    const neu = route(inv, true).rep;
+    const neu = route(inv, false, sim).rep;
     const fit = (r) => { if (!r) return false; const o = live.find((x) => x.owns.includes(domain(inv.email))); return o ? r === o : r.terr === inv.terr && r.skills.includes(inv.topic); };
     const a = fit(old), b = fit(neu); oldGood += a; good += b;
     return { inv, old: old.name, oldFit: a, neu: neu ? neu.name : '—', neuFit: b };
   });
-  DB.rrPtr = saved;
   return { rows, oldGood, good, total: T.length };
 }
 
 // SCIM 2.0: deactivate user → remove from routing, hand over accounts + meetings
 function deprovision(r) {
   if (!r.active) return { already: true };
-  r.active = false;
+  store.updateRep(r.id, { active: false });
   const peer = DB.reps.find((x) => x !== r && x.active && x.terr === r.terr) || DB.reps.find((x) => x !== r && x.active);
-  const owns = r.owns.splice(0);
-  peer.owns.push(...owns);
+  const owns = r.owns.slice();
+  store.updateRep(r.id, { owns: [] });
+  store.updateRep(peer.id, { owns: [...peer.owns, ...owns] });
   const moved = DB.bookings.filter((b) => b.repId === r.id);
-  moved.forEach((b) => (b.repId = peer.id));
+  moved.forEach((b) => store.updateBooking(b.id, { repId: peer.id }));
   log('okta-scim', 'User deprovisioned', `${r.name} deactivated in Okta`);
   log('kestrel', 'Removed from routing', `${r.name} out of ${r.terr} pool`);
   if (owns.length) log('kestrel', 'Accounts reassigned', `${owns.join(', ')} → ${peer.name}`);
@@ -124,51 +126,50 @@ async function handler(req, res) {
       const r = route(inv);
       return send(res, 200, { ...r, slots: r.rep ? slots(r.rep, inv.tz, 60) : [] });
     }
-    if (p === '/api/bookings' && m === 'GET') return send(res, 200, DB.bookings);
+    if (p === '/api/bookings' && m === 'GET') return send(res, 200, store.listBookings());
     if (p === '/api/bookings' && m === 'POST') {
       const { inv, start } = await readBody(req);
       const routed = route(inv, true); const r = routed.rep;
       if (!r) return send(res, 409, { error: 'No available rep' });
       if (!slots(r, inv.tz, 40).includes(DateTime.fromISO(start).toUTC().toISO())) return send(res, 409, { error: 'That time was just taken. Please pick another.' });
       const b = { id: 'BK-' + (DB.bookings.length + 1), repId: r.id, who: inv.email, start, tz: inv.tz, topic: inv.topic, why: routed.why, status: 'confirmed' };
-      DB.bookings.push(b);
+      store.saveBooking(b);
       log('booking-page', 'Meeting booked', `${inv.email} → ${r.name} (${DateTime.fromISO(start).setZone(r.tz).toFormat('d LLL HH:mm')} ${r.tz})`);
       return send(res, 201, { booking: b, rep: r, buffer: DB.buffer });
     }
     let cm;
     if ((cm = p.match(/^\/api\/bookings\/([\w-]+)$/)) && m === 'DELETE') {
-      const b = DB.bookings.find((x) => x.id === cm[1]); if (!b) return send(res, 404, { error: 'not found' });
-      b.status = 'cancelled'; const r = rep(b.repId);
+      const b = store.updateBooking(cm[1], { status: 'cancelled' }); if (!b) return send(res, 404, { error: 'not found' });
+      const r = rep(b.repId);
       log('ops@halden', 'Meeting cancelled', `${b.id} · ${b.who} with ${r ? r.name : b.repId}; slot released`);
       return send(res, 200, b);
     }
     if (p === '/api/rules' && m === 'PUT') {
       const { rules } = await readBody(req);
       if (!Array.isArray(rules) || rules.length !== DB.rules.length) return send(res, 400, { error: 'bad rules' });
-      DB.rules = rules.map((x) => ({ ...DB.rules.find((r) => r.k === x.k), on: !!x.on }));
+      store.saveRules(rules.map((x) => ({ ...DB.rules.find((r) => r.k === x.k), on: !!x.on })));
       log('ops@halden', 'Routing rules updated', DB.rules.map((r, i) => `${i + 1}.${r.k}${r.on ? '' : '(off)'}`).join(' '));
       return send(res, 200, DB.rules);
     }
     let mm;
     if ((mm = p.match(/^\/api\/reps\/(\w+)$/)) && m === 'PATCH') {
-      const r = rep(mm[1]); if (!r) return send(res, 404, { error: 'no rep' });
-      const b = await readBody(req); r.away = !!b.away;
+      const b = await readBody(req); const r = store.updateRep(mm[1], { away: !!b.away }); if (!r) return send(res, 404, { error: 'no rep' });
       log('ops@halden', r.away ? 'Rep marked on leave' : 'Rep back from leave', r.name);
       return send(res, 200, r);
     }
     if (p === '/api/buffer' && m === 'POST') {
-      DB.buffer = !!(await readBody(req)).on;
+      store.setBuffer((await readBody(req)).on);
       log('ops@halden', DB.buffer ? 'Buffer turned on' : 'Buffer turned off', '10 min after every meeting · all reps');
       return send(res, 200, { buffer: DB.buffer });
     }
     if (p === '/api/simulate' && m === 'GET') return send(res, 200, simulate());
-    if (p === '/api/audit' && m === 'GET') return send(res, 200, DB.audit);
+    if (p === '/api/audit' && m === 'GET') return send(res, 200, store.listAudit());
     if (p === '/api/audit.csv' && m === 'GET') {
       const csv = 'time,actor,event,detail\n' + DB.audit.map((a) => [a.t, a.who, a.ev, a.d].map((v) => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
       res.setHeader('Content-Disposition', 'attachment; filename="kestrel-audit-log.csv"');
       return send(res, 200, csv, 'text/csv');
     }
-    if (p === '/api/reset' && m === 'POST') { DB = store.reset(); return send(res, 200, { ok: true }); }
+    if (p === '/api/reset' && m === 'POST') { store.reset(); return send(res, 200, { ok: true }); }
 
     // SCIM 2.0 (what Okta calls)
     if (p.startsWith('/scim/v2/')) {
