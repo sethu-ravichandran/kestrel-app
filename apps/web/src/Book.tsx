@@ -17,7 +17,7 @@ const PRESETS = [
 const TOPIC: Record<string, string> = { general: 'Intro & pricing', technical: 'Technical deep-dive', billing: 'Billing question' }
 const initials = (n: string) => n.split(' ').map(x => x[0]).join('')
 const first = (n: string) => n.split(' ')[0]
-const Logo = () => <div className="flex items-center gap-2"><div className="grid size-8 place-items-center rounded-md bg-gray-900 text-[13px] font-bold text-white">H</div><span className="font-semibold">Halden Group</span></div>
+const Logo = () => <div className="flex items-center gap-2"><div className="grid size-8 place-items-center rounded-md bg-[hsl(var(--navy))] text-[13px] font-bold text-white">H</div><span className="font-semibold">Halden Group</span></div>
 
 export default function Book({ st, reload }: { st: State; reload: () => void }) {
   const toast = useToast()
@@ -73,7 +73,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
   </div>
 
   if (stage === 'intake') return <>{demoMenu}
-    <div className="mx-auto max-w-md rounded-xl border bg-white p-6 shadow-sm animate-fade-up">
+    <div className="mx-auto max-w-md rounded-2xl border border-[#e6e9f2] bg-white p-6 shadow-sm animate-fade-up">
       <Logo />
       <h2 className="mt-5 text-lg font-semibold">Book a call</h2>
       <p className="mt-1 text-[13px] text-muted-foreground">A few details so we can connect you with the right person.</p>
@@ -89,7 +89,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
     </div></>
 
   if (stage === 'done' && done && rep) { const s = DateTime.fromISO(done.start); return <>{demoMenu}
-    <div className="mx-auto max-w-lg rounded-xl border bg-white p-8 text-center shadow-sm animate-fade-up">
+    <div className="mx-auto max-w-lg rounded-2xl border border-[#e6e9f2] bg-white p-8 text-center shadow-sm animate-fade-up">
       <div className="mx-auto grid size-11 place-items-center rounded-full bg-green-100 text-green-700 animate-pop"><svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" strokeDasharray="24" className="animate-draw" /></svg></div>
       <h2 className="mt-4 text-lg font-semibold">This meeting is scheduled</h2>
       <p className="mt-1 text-[13px] text-muted-foreground">We sent a calendar invitation to {inv.email}.</p>
@@ -102,7 +102,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
     </div></> }
 
   return <>{demoMenu}
-    <div className="mx-auto max-w-5xl overflow-hidden rounded-xl border bg-white shadow-sm animate-fade-up">
+    <div className="mx-auto max-w-5xl overflow-hidden rounded-2xl border border-[#e6e9f2] bg-white shadow-sm animate-fade-up">
       <div className="grid md:grid-cols-[280px_1fr_250px]">
         {/* left: who + what */}
         <aside className="border-b p-5 md:border-b-0 md:border-r">
@@ -110,7 +110,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
           <Logo />
           {!rep ? <div className="mt-6"><div className="flex items-center gap-3"><Skeleton className="size-10 rounded-full" /><div className="space-y-1.5"><Skeleton className="h-3 w-16" /><Skeleton className="h-4 w-28" /></div></div><Skeleton className="mt-2 h-5 w-32 rounded-full" /><Skeleton className="mt-5 h-6 w-40" /><div className="mt-3 space-y-2"><Skeleton className="h-5 w-20" /><Skeleton className="h-5 w-28" /><Skeleton className="h-5 w-24" /></div></div> : <div className="animate-fade-up">
             <div className="mt-6 flex items-center gap-3">
-              <div className="grid size-10 place-items-center rounded-full bg-blue-600 text-[13px] font-semibold text-white">{initials(rep.name)}</div>
+              <div className="grid size-10 place-items-center rounded-full bg-primary text-[13px] font-semibold text-white">{initials(rep.name)}</div>
               <div><p className="text-[13px] text-muted-foreground">You'll meet</p><p className="font-semibold">{rep.name}</p></div>
             </div>
             <div className="mt-2 flex flex-wrap gap-1">{res?.why === 'owner' ? <Badge variant="default">Your account manager</Badge> : <><Badge>{rep.terr}</Badge>{inv.topic === 'technical' && <Badge>Solutions engineer</Badge>}{rep.langs.includes(inv.lang) && inv.lang !== 'English' && <Badge>Speaks {inv.lang}</Badge>}</>}</div>
@@ -135,15 +135,15 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
           <div key={month.toISODate()} className={cn('mt-1 grid grid-cols-7 gap-1', dir > 0 ? 'animate-slide-l' : dir < 0 ? 'animate-slide-r' : '')}>{cells.map(c => { const k = c.toISODate()!, has = !!byDay[k], inM = c.month === month.month, on = k === day
             return <button key={k} disabled={!has || !rep} onClick={() => setDay(k)} aria-pressed={on}
               className={cn('relative aspect-square min-h-9 rounded-md text-[13px] tabular-nums transition-[background-color,color,transform] duration-fast ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 enabled:active:scale-[.94] disabled:cursor-default',
-                !inM && 'invisible', on ? 'bg-gray-900 font-semibold text-white' : has && rep ? 'bg-blue-50 font-semibold text-blue-700 hover:bg-blue-100' : 'text-gray-300')}>
-              {c.day}{has && !on && <span className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-blue-600" />}</button> })}</div>
+                !inM && 'invisible', on ? 'bg-[hsl(var(--navy))] font-semibold text-white' : has && rep ? 'bg-blue-50 font-semibold text-blue-700 hover:bg-blue-100' : 'text-gray-300')}>
+              {c.day}{has && !on && <span className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-primary" />}</button> })}</div>
         </section>
 
         {/* right: times */}
         <section className="p-5">
           <div className="flex items-center justify-between">
             <p className="text-[13px] font-semibold">{day ? <>{DateTime.fromISO(day).toFormat('ccc')} <span className="text-muted-foreground">{DateTime.fromISO(day).toFormat('d')}</span></> : <CalendarDays className="size-4" />}</p>
-            <div className="flex rounded-md border p-0.5 text-[11px]">{[false, true].map(v => <button key={String(v)} onClick={() => setH12(v)} aria-pressed={h12 === v} className={cn('rounded px-2 py-1 tabular-nums transition-colors duration-fast ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', h12 === v ? 'bg-gray-900 text-white' : 'text-muted-foreground hover:text-foreground')}>{v ? '12h' : '24h'}</button>)}</div>
+            <div className="flex rounded-md border p-0.5 text-[11px]">{[false, true].map(v => <button key={String(v)} onClick={() => setH12(v)} aria-pressed={h12 === v} className={cn('rounded px-2 py-1 tabular-nums transition-colors duration-fast ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', h12 === v ? 'bg-[hsl(var(--navy))] text-white' : 'text-muted-foreground hover:text-foreground')}>{v ? '12h' : '24h'}</button>)}</div>
           </div>
           <div className="mt-3 max-h-[380px] space-y-2 overflow-y-auto pr-1">
             {!res ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10" />) :
@@ -151,7 +151,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
               daySlots.map((s, i) => { const d = DateTime.fromISO(s), on = sel === s
                 return <div key={s} className="flex gap-2 animate-fade-up" style={{ animationDelay: `${i * 30}ms` }}>
                   <button onClick={() => setSel(on ? null : s)} title={`${d.setZone(rep!.tz).toFormat(tf)} for ${first(rep!.name)} in ${city(rep!.tz)}`}
-                    className={cn('h-10 flex-1 rounded-md border text-[13px] font-semibold tabular-nums transition-[background-color,border-color,color,transform] duration-fast ease-out hover:border-blue-600 hover:text-blue-700 active:scale-[.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1', on && 'bg-gray-900 text-white border-gray-900 hover:border-gray-900 hover:text-white')}>
+                    className={cn('h-10 flex-1 rounded-md border text-[13px] font-semibold tabular-nums transition-[background-color,border-color,color,transform] duration-fast ease-out hover:border-blue-600 hover:text-blue-700 active:scale-[.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1', on && 'bg-[hsl(var(--navy))] text-white border-gray-900 hover:border-gray-900 hover:text-white')}>
                     {d.setZone(inv.tz).toFormat(tf).toLowerCase()}</button>
                   {on && <Button className="h-10 animate-slide-l" disabled={busy} aria-busy={busy} onClick={confirm}>{busy && <span className="size-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />}{busy ? 'Booking…' : 'Confirm'}</Button>}
                 </div> })}

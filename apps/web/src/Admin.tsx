@@ -64,7 +64,7 @@ export default function Admin({ st, reload }: { st: State; reload: () => Promise
             <Button variant="ghost" size="icon" aria-label="Move up" onClick={() => move(i, -1)} disabled={i === 0}><ArrowUp /></Button>
             <Button variant="ghost" size="icon" aria-label="Move down" onClick={() => move(i, 1)} disabled={i === R.length - 1}><ArrowDown /></Button>
             <button role="switch" aria-checked={r.on} aria-label={`Toggle ${r.k}`} onClick={() => save(R.map((x, k) => k === i ? { ...x, on: !x.on } : x), r.on ? 'Rule turned off' : 'Rule turned on')}
-              className={cn('relative h-5 w-9 shrink-0 rounded-full transition-colors duration-base ease-out active:[&>span]:w-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2', r.on ? 'bg-blue-600' : 'bg-gray-300')}>
+              className={cn('relative h-5 w-9 shrink-0 rounded-full transition-colors duration-base ease-out active:[&>span]:w-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2', r.on ? 'bg-primary' : 'bg-gray-300')}>
               <span className={cn('absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-background shadow-sm transition-[transform,width] duration-base ease-out', r.on ? 'translate-x-4' : 'translate-x-0')} /></button>
           </div>)}
           <p className="px-1 pt-1 text-xs text-muted-foreground">Fallback: round robin within whatever group is left</p>
