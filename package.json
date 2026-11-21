@@ -1,3 +1,12 @@
-{ "name": "kestrel-smart-routing", "version": "1.0.0", "private": true, "main": "server.js",
-  "scripts": { "build": "cd client && npm install --include=dev && npm run build", "start": "node server.js" },
-  "engines": { "node": ">=18" }, "dependencies": { "luxon": "3.4.4" } }
+{
+  "name": "kestrel-smart-routing",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "build": "npm run build -w @kestrel/web",
+    "start": "npm start -w @kestrel/api",
+    "dev": "npm start -w @kestrel/api & npm run dev -w @kestrel/web",
+    "typecheck": "npm run typecheck -w @kestrel/web"
+  },
+  "engines": { "node": ">=18" }
+}

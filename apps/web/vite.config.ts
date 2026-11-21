@@ -4,6 +4,6 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   resolve: { alias: { '@': path.resolve(__dirname, 'src') } },
-  build: { outDir: '../public', emptyOutDir: false },
+  build: { outDir: '../api/public', emptyOutDir: false },
   server: { proxy: { '/api': 'http://localhost:5178', '/scim': 'http://localhost:5178' } },
 })
