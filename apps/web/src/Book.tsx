@@ -73,7 +73,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
   </div>
 
   if (stage === 'intake') return <>{demoMenu}
-    <div className="mx-auto max-w-md rounded-2xl border border-[#e6e9f2] bg-white p-6 shadow-sm animate-fade-up">
+    <div className="mx-auto max-w-md rounded-2xl border border-[hsl(var(--line))] bg-white p-6 shadow-sm animate-fade-up">
       <Logo />
       <h2 className="mt-5 text-lg font-semibold">Book a call</h2>
       <p className="mt-1 text-[13px] text-muted-foreground">A few details so we can connect you with the right person.</p>
@@ -89,7 +89,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
     </div></>
 
   if (stage === 'done' && done && rep) { const s = DateTime.fromISO(done.start); return <>{demoMenu}
-    <div className="mx-auto max-w-lg rounded-2xl border border-[#e6e9f2] bg-white p-8 text-center shadow-sm animate-fade-up">
+    <div className="mx-auto max-w-lg rounded-2xl border border-[hsl(var(--line))] bg-white p-8 text-center shadow-sm animate-fade-up">
       <div className="mx-auto grid size-11 place-items-center rounded-full bg-green-100 text-green-700 animate-pop"><svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5" strokeDasharray="24" className="animate-draw" /></svg></div>
       <h2 className="mt-4 text-lg font-semibold">This meeting is scheduled</h2>
       <p className="mt-1 text-[13px] text-muted-foreground">We sent a calendar invitation to {inv.email}.</p>
@@ -102,7 +102,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
     </div></> }
 
   return <>{demoMenu}
-    <div className="mx-auto max-w-5xl overflow-hidden rounded-2xl border border-[#e6e9f2] bg-white shadow-sm animate-fade-up">
+    <div className="mx-auto max-w-5xl overflow-hidden rounded-2xl border border-[hsl(var(--line))] bg-white shadow-sm animate-fade-up">
       <div className="grid md:grid-cols-[280px_1fr_250px]">
         {/* left: who + what */}
         <aside className="border-b p-5 md:border-b-0 md:border-r">
@@ -143,7 +143,7 @@ export default function Book({ st, reload }: { st: State; reload: () => void }) 
         <section className="p-5">
           <div className="flex items-center justify-between">
             <p className="text-[13px] font-semibold">{day ? <>{DateTime.fromISO(day).toFormat('ccc')} <span className="text-muted-foreground">{DateTime.fromISO(day).toFormat('d')}</span></> : <CalendarDays className="size-4" />}</p>
-            <div className="flex rounded-md border p-0.5 text-[11px]">{[false, true].map(v => <button key={String(v)} onClick={() => setH12(v)} aria-pressed={h12 === v} className={cn('rounded px-2 py-1 tabular-nums transition-colors duration-fast ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', h12 === v ? 'bg-[hsl(var(--navy))] text-white' : 'text-muted-foreground hover:text-foreground')}>{v ? '12h' : '24h'}</button>)}</div>
+            <div className="flex rounded-md border p-0.5 text-[11px]">{[false, true].map(v => <button key={String(v)} onClick={() => setH12(v)} aria-pressed={h12 === v} className={cn('rounded px-2 py-1 tabular-nums transition-colors duration-fast ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', h12 === v ? 'bg-[hsl(var(--navy))] text-white dark:bg-primary' : 'text-muted-foreground hover:text-foreground')}>{v ? '12h' : '24h'}</button>)}</div>
           </div>
           <div className="mt-3 max-h-[380px] space-y-2 overflow-y-auto pr-1">
             {!res ? Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10" />) :

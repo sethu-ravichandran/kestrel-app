@@ -40,18 +40,18 @@ export default function Bookings({ st }: { st: State }) {
 
   return <div className="space-y-6">
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{stats.map(([k, v]) =>
-      <div key={k} className="rounded-2xl border border-[#e6e9f2] bg-white p-5 shadow-[0_1px_2px_rgba(12,16,36,.04),0_8px_24px_-12px_rgba(12,16,36,.08)] transition-transform duration-base hover:-translate-y-0.5"><p className="text-[13px] text-muted-foreground">{k}</p>
+      <div key={k} className="rounded-2xl border border-[hsl(var(--line))] bg-white p-5 shadow-[0_1px_2px_rgba(12,16,36,.04),0_8px_24px_-12px_rgba(12,16,36,.08)] transition-transform duration-base hover:-translate-y-0.5"><p className="text-[13px] text-muted-foreground">{k}</p>
         {rows ? <p className="mt-2 text-[30px] font-semibold leading-none tabular-nums tracking-[-0.04em] animate-fade-up">{v}</p> : <Skeleton className="mt-2 h-7 w-16" />}</div>)}</div>
 
     {rows ? <TerritoryCards st={st} rows={rows} /> : <Skeleton className="h-[116px]" />}
 
     <div className={cn('grid items-start gap-4', open && 'xl:grid-cols-[1fr_340px]')}>
-    <div className="min-w-0 overflow-hidden rounded-2xl border border-[#e6e9f2] bg-white shadow-[0_1px_2px_rgba(12,16,36,.04),0_8px_24px_-12px_rgba(12,16,36,.08)]">
+    <div className="min-w-0 overflow-hidden rounded-2xl border border-[hsl(var(--line))] bg-white shadow-[0_1px_2px_rgba(12,16,36,.04),0_8px_24px_-12px_rgba(12,16,36,.08)]">
       <div className="flex flex-wrap items-center gap-3 border-b px-4 py-3">
-        <div className="flex rounded-full bg-[#eef1f8] p-1 text-[13px]">{(['confirmed', 'cancelled'] as const).map(t =>
+        <div className="flex rounded-full bg-[hsl(var(--muted))] p-1 text-[13px]">{(['confirmed', 'cancelled'] as const).map(t =>
           <button key={t} onClick={() => setTab(t)} className={cn('rounded-full px-3.5 py-1 font-medium capitalize transition-all duration-fast', tab === t ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
             {t === 'confirmed' ? 'Upcoming' : 'Cancelled'} <span className="ml-1 tabular-nums text-muted-foreground">{(rows || []).filter(b => b.status === t).length}</span></button>)}</div>
-        <div className="flex rounded-full border border-[#e6e9f2] p-1 text-[13px]">{(['list', 'week'] as const).map(v => <button key={v} onClick={() => setView(v)} className={cn('rounded-full px-3.5 py-1 font-medium capitalize transition-all duration-fast', view === v ? 'bg-[hsl(var(--navy))] text-white' : 'text-muted-foreground hover:text-foreground')}>{v}</button>)}</div>
+        <div className="flex rounded-full border border-[hsl(var(--line))] p-1 text-[13px]">{(['list', 'week'] as const).map(v => <button key={v} onClick={() => setView(v)} className={cn('rounded-full px-3.5 py-1 font-medium capitalize transition-all duration-fast', view === v ? 'bg-[hsl(var(--navy))] text-white dark:bg-primary' : 'text-muted-foreground hover:text-foreground')}>{v}</button>)}</div>
         <div className="relative ml-auto w-full sm:w-64"><Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input aria-label="Search bookings" placeholder="Search invitee or rep" className="pl-8" value={q} onChange={e => setQ(e.target.value)} />
           {q && <button aria-label="Clear search" onClick={() => setQ('')} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"><X className="size-3.5" /></button>}</div>

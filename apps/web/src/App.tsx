@@ -65,7 +65,7 @@ function Shell() {
     <div className="min-w-0 flex-1">
       {/* mobile nav */}
       <div className="sticky top-0 z-30 flex gap-1 overflow-x-auto border-b bg-white px-3 py-2 md:hidden">{NAV.slice(0, 4).map(n => <button key={n.v} onClick={() => nav(n.v)} className={cn('whitespace-nowrap rounded-md px-3 py-1.5 text-[13px]', n.v === page ? 'bg-muted font-medium' : 'text-muted-foreground')}>{n.label}</button>)}</div>
-      <header className="border-b border-[#e6e9f2] bg-white/80 backdrop-blur">
+      <header className="border-b border-[hsl(var(--line))] bg-white/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-6 py-5">
           <div><h1 className="text-[22px] font-semibold tracking-[-0.03em]">{TITLE[page][0]}</h1><p className="mt-0.5 text-[13px] text-muted-foreground">{TITLE[page][1]}</p></div>
           {page === 'page' && <div className="ml-auto flex items-center gap-2">

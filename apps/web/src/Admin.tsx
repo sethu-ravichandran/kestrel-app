@@ -118,7 +118,7 @@ function AuditPage({ audit }: { audit: Audit[] }) {
   const dot = (w: string) => w === 'okta-scim' ? 'bg-[#6d4aff]' : w === 'booking-page' ? 'bg-emerald-500' : w === 'kestrel' ? 'bg-amber-500' : 'bg-primary'
   return <Card>
     <CardHeader className="flex-row flex-wrap items-center gap-3 space-y-0">
-      <div className="flex flex-wrap gap-1 rounded-full bg-[#eef1f8] p-1 text-[13px]">{ACTORS.map(([k, l]) => <button key={k} onClick={() => setF(k)} className={cn('rounded-full px-3 py-1 font-medium transition-all duration-fast', f === k ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>{l}</button>)}</div>
+      <div className="flex flex-wrap gap-1 rounded-full bg-[hsl(var(--muted))] p-1 text-[13px]">{ACTORS.map(([k, l]) => <button key={k} onClick={() => setF(k)} className={cn('rounded-full px-3 py-1 font-medium transition-all duration-fast', f === k ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>{l}</button>)}</div>
       <input aria-label="Search audit log" placeholder="Search events" value={q} onChange={e => setQ(e.target.value)} className="ml-auto h-9 w-full rounded-full border border-input bg-white px-4 text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 sm:w-56" />
       <Button variant="outline" size="sm" onClick={() => { location.href = apiUrl('/api/audit.csv') }}><Download />Export CSV</Button>
     </CardHeader>
