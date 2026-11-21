@@ -1,24 +1,86 @@
-# Kestrel Smart Routing (prototype)
+<div align="center">
 
-Routes each booking to the right rep (account owner → territory → skill → language, then round robin) and shows *why*. Also includes SCIM 2.0 deprovisioning (Okta), a one-click buffer nudge, and an audit log with CSV export.
+# Kestrel Smart Routing
 
-```
-apps/
-  web/      React 18 + TypeScript + Vite + Tailwind + shadcn/ui (customer booking page + routing settings)
-  api/      Node.js API: routing engine, bookings, SCIM 2.0, audit log; serves the built web app from public/
-            store.js        storage interface (in-memory today)
-            data/seed.json  fixture loaded on boot and on POST /api/reset
-packages/
-  shared/   TypeScript contracts shared across apps (Rep, Rule, Invitee, RouteRes…)
-```
+**Every booking goes to the right person, the first time, and the product shows you why.**
 
-```
+<img src="docs/demo.gif" alt="Kestrel Smart Routing demo" width="900" />
+
+`React 18` · `TypeScript` · `Vite` · `Tailwind` · `shadcn/ui` · `Node.js` · `Luxon` · `SCIM 2.0`
+
+</div>
+
+---
+
+## The problem
+
+Kestrel's own data pointed somewhere unexpected. The loudest requests (dark mode, Salesforce custom objects) came from Starter accounts and sales prospects. The board goal is **growing accounts with 200+ seats**, and in those accounts the top ask was **routing**: 6 of 13, **$661K ARR**.
+
+The clearest signal came from the largest customer, Halden Group ($182K, 900 seats). It renews on 4 January, its round-robin usage fell **41% in 12 weeks**, and it wrote that it was *"working around it by hand."*
+
+Round robin hands a meeting to whoever is next in line. Existing customers end up meeting strangers, a Seattle lead gets a New York rep at 6am, and ops reassigns meetings by hand.
+
+## What it does
+
+| | |
+|---|---|
+| **Routes by rules, in order** | Account owner → territory → skill → language. Round robin only breaks ties. |
+| **Explains every decision** | Each booking shows *why* that rep, step by step. Customers see a short "finding your person" match; ops sees the full trace in the inspector. |
+| **Respects both clocks** | Only offers times inside the customer's day **and** the rep's day. Times are stored in UTC and shown in both zones. |
+| **Handles people leaving** | A real `PATCH /scim/v2/Users/:id` from Okta removes the rep from routing and hands their accounts and upcoming meetings to a teammate in the same territory. |
+| **Proves it works** | The simulator replays last week's bookings: **right rep 1/8 → 8/8**. Insights tracks the routing mix, demand heatmap and load per rep. |
+| **Audit-ready** | Every change is logged by actor and source, and can be exported to CSV for compliance reviews. |
+
+## Tour
+
+| Page | At a glance |
+|---|---|
+| **Bookings** | "8 of 20 meetings went straight to the account owner." Territory capacity, week grid, list with an inspector panel. |
+| **Insights** | Right rep first time went from 25% to 97%, with the routing mix over 8 weeks, a demand heatmap and load per rep. |
+| **Booking page** | The customer view: intake → animated match → calendar → confirmation. |
+| **Routing** | Rules you can reorder or switch off, with a live simulator score and a one-click buffer suggestion. |
+| **Team & identity** | Who is in the pool, who is on leave, and Okta/SCIM deprovisioning. |
+| **Audit log** | Source breakdown, a 14-day activity chart and a searchable timeline. |
+
+Light, dark and system themes. Demo scenarios are built into the booking page, and **Reset demo data** restores the seed at any time.
+
+## What I chose not to build
+
+- **Dark mode as the feature:** it was the loudest ask (46), but those accounts are worth $49K. It's shipped here as polish, not as the bet.
+- **Salesforce custom objects:** 19 "Critical" notes, all relayed by sales about prospects. $0 current ARR.
+- **A new buffer feature:** buffers already existed but were buried in settings (5 of 31 asking accounts had found them). The fix is a one-click suggestion.
+
+## Run it
+
+```bash
 npm install
 npm run build    # builds apps/web into apps/api/public
 npm start        # http://localhost:5178
 npm run dev      # API + Vite dev server with proxy
 ```
-SCIM: `curl -X PATCH -H "Authorization: Bearer demo-okta-token" -d '{"Operations":[{"op":"replace","value":{"active":false}}]}' localhost:5178/scim/v2/Users/ana`
+
+```
+apps/
+  web/      React + TypeScript + Vite + Tailwind + shadcn/ui
+  api/      Node.js API: routing engine, bookings, SCIM 2.0, audit log
+            store.js        storage interface (in-memory today)
+            data/seed.json  fixture loaded on boot and on POST /api/reset
+packages/
+  shared/   TypeScript contracts shared across apps
+```
+
+Try SCIM:
+```bash
+curl -X PATCH -H "Authorization: Bearer demo-okta-token" \
+  -d '{"Operations":[{"op":"replace","value":{"active":false}}]}' \
+  localhost:5178/scim/v2/Users/ana
+```
+
+### Deploy (two Vercel projects)
+| Project | Root directory | Preset | Env |
+|---|---|---|---|
+| API | `apps/api` | Other | — |
+| Web | `apps/web` | Vite | `VITE_API_URL=https://<api>.vercel.app` |
 
 ## Persistence (deliberate trade-off)
 **In-memory by design for a 2-hour prototype. Persistence is behind an interface, and `apps/api/store.js` is the one file you'd change.**
