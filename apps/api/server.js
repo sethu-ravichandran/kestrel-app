@@ -200,7 +200,7 @@ async function handler(req, res) {
   res.on('finish', () => { if (process.env.ACCESS_LOG !== '0') console.log(JSON.stringify({ rid, m: req.method, p: req.url, s: res.statusCode, ms: Number(process.hrtime.bigint() - t0) / 1e6 })); });
   let url;
   try { url = new URL(req.url, 'http://x'); } catch { return send(res, 400, { error: 'bad url' }); }
-  const p = url.pathname, m = req.method;
+  const p = url.pathname.startsWith('/api/scim/') ? url.pathname.slice(4) : url.pathname, m = req.method;
   if (m === 'OPTIONS') return send(res, 204, '');
   try {
     if (p === '/api/state' && m === 'GET') return send(res, 200, { reps: DB.reps, rules: DB.rules, buffer: DB.buffer, bufferBefore: DB.bufferBefore || 0, bufferAfter: DB.bufferAfter || 0, locs: LOCS, now: DEMO_NOW.toISO() });

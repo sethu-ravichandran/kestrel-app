@@ -19,7 +19,7 @@ export const api = {
   simulate: () => call<{ rows: SimRow[]; oldGood: number; good: number; total: number }>('/api/simulate'),
   audit: () => call<Audit[]>('/api/audit'),
   reset: () => call('/api/reset', 'POST'),
-  scimDeactivate: (id: string) => call<{ 'urn:kestrel:handover': { rep: string; peer: string; accounts: string[]; meetings: number } }>('/scim/v2/Users/' + id, 'PATCH',
+  scimDeactivate: (id: string) => call<{ 'urn:kestrel:handover': { rep: string; peer: string; accounts: string[]; meetings: number } }>('/api/scim/v2/Users/' + id, 'PATCH',
     { schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'], Operations: [{ op: 'replace', value: { active: false } }] }, { Authorization: 'Bearer demo-okta-token' }),
 }
 export const city = (z: string) => z.split('/').pop()!.replace('_', ' ')
